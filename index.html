@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
 <title>電圧降下計算</title>
-<meta name="description" content="低圧・高圧幹線の電圧降下とケーブルサイズを計算し、幹線計算書をPDFで出力します。">
+<meta name="description" content="低圧・高圧幹線の電圧降下とケーブルサイズを計算し、電圧降下計算書をPDFで出力します。">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -240,6 +240,32 @@ html.zvon,html.zvon body{overflow:hidden}
 .zvh{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:calc(100% - 32px);background:rgba(16,21,27,.9);color:#eef2f6;font-size:.8rem;padding:7px 14px;border-radius:999px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .35s}
 .zvh.on{opacity:1}
 @media (prefers-reduced-motion:reduce){.zvh{transition:none}}
+
+/* ===== 仕上げ ===== */
+h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03em;margin:4px 0 6px}
+.appi{width:36px;height:36px;border-radius:9px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.lead{line-height:1.7;max-width:46em}
+.card>h2:first-child{margin-bottom:12px}
+/* 件名などは図面の表題欄のように: 太い外枠と細い罫線で区切ったマスに書き込む */
+.pjcard{padding:0;background:var(--line);border:1.5px solid var(--ink);border-radius:6px;overflow:hidden}
+.pjcard .pjgrid{gap:1px}
+.pjcard .f{background:var(--card);padding:8px 12px 3px;min-width:0;transition:background-color .15s,box-shadow .15s}
+.pjcard .f:focus-within{background:var(--brb);box-shadow:inset 0 -2px 0 var(--acc)}
+.pjcard label{font-size:.7rem;margin:0;letter-spacing:.02em}
+.pjcard input,.pjcard select{height:2.15rem;border:0;border-radius:0;background:transparent;padding:0;font-size:1rem}
+.pjcard select{margin-left:-3px;width:calc(100% + 3px)}
+.pjcard input:focus-visible,.pjcard select:focus-visible{outline:none}
+.pjcard .pjn input{font-size:1.12rem;font-weight:700}
+@media (prefers-reduced-motion:reduce){.pjcard .f{transition:none}}
+@media (max-width:1100px){.pjcard .f:last-child{grid-column:span 2}}
+@media (max-width:520px){.pjcard .pjgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pjcard .pjn{grid-column:1/-1}.pjcard .f:last-child{grid-column:1/-1}}
+/* 下の「計算する」のバー: 上の内容がふわっと隠れるように */
+.btns::before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none}
+.btn{transition:background-color .15s,filter .15s}
+.btn.pri:hover{filter:brightness(1.08)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+/* 横に並んだカードは、いま見ているカードの高さに合わせる(JSで高さを入れる) */
+#rows,#hrows{overflow-y:hidden}
 </style>
 </head>
 <body>
@@ -255,8 +281,8 @@ html.zvon,html.zvon body{overflow:hidden}
 <p class="shint" id="sHint" hidden>ホーム画面に追加して使うと、保存した現場が消えにくくなります(Safariの共有ボタン →「ホーム画面に追加」)。</p>
 </aside>
 <main>
-<header class="top"><div class="topbar"><button type="button" class="sbtn" id="sOpen" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h9"/></svg><span id="sCur">現場一覧</span></button></div><h1>電圧降下計算</h1>
-<p class="lead">幹線を入れて「計算する」を押すと、ケーブルの太さと判定が出て、幹線計算書をPDFで保存できます。低圧と高圧はタブで切り替えます。</p></header>
+<header class="top"><div class="topbar"><button type="button" class="sbtn" id="sOpen" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h9"/></svg><span id="sCur">現場一覧</span></button></div><h1><img class="appi" src="icon-192.png" alt="" width="36" height="36">電圧降下計算</h1>
+<p class="lead">幹線ごとに負荷と長さを入れて「計算する」を押すと、ケーブルの太さと判定が出ます。計算書はPDF・Excelで保存できます。低圧と高圧は下のタブで切り替えます。</p></header>
 <section class="card pjcard">
 <div class="pjgrid">
 <div class="f pjn"><label for="pjName">件名(建物名称)</label><input id="pjName" placeholder="件名を入力(例: ○○ビル新築工事)"></div>
@@ -785,7 +811,13 @@ function rm(){return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-m
 S.set=function(i){var L=p.list();i=Math.max(0,Math.min(i,L.length-1));S.i=i;var c=$(p.p+"chips"),ch=c.querySelectorAll(".chip");
 for(var k=0;k<ch.length;k++){var on=k===i;ch[k].setAttribute("aria-current",on?"true":"false");
 if(on){var X=ch[k].offsetLeft,W=ch[k].offsetWidth;if(X<c.scrollLeft)c.scrollLeft=X-4;else if(X+W>c.scrollLeft+c.clientWidth)c.scrollLeft=X+W-c.clientWidth+4}}
-$(p.p+"count").textContent=(i+1)+" / "+L.length;$(p.p+"Prev").disabled=i<=0;$(p.p+"Next").disabled=i>=L.length-1};
+$(p.p+"count").textContent=(i+1)+" / "+L.length;$(p.p+"Prev").disabled=i<=0;$(p.p+"Next").disabled=i>=L.length-1;S.fit()};
+/* 横に並んだカードの高さを、いま見ているカードに合わせる(短いカードの下に大きな空きができないように) */
+var ro=window.ResizeObserver?new ResizeObserver(function(){S.fit()}):null,roEl=null;
+S.fit=function(){var box=$(p.box),c=cards()[S.i];if(!c){box.style.height="";return}
+if(ro&&roEl!==c){if(roEl)ro.unobserve(roEl);ro.observe(c);roEl=c}
+var h=c.offsetHeight;box.style.height=h?(h+8)+"px":""};
+if(window.MutationObserver)new MutationObserver(function(){S.fit()}).observe($(p.box),{childList:true});
 S.chips=function(){var L=p.list();$(p.p+"chips").innerHTML=L.map(function(r,i){return '<button type="button" class="chip" data-ci="'+i+'" aria-current="false"><span class="cn">'+(i+1)+'</span><span class="ct">'+esc(r.name||("幹線"+(i+1)))+'</span></button>'}).join("");if(addB)$(p.p+"chips").appendChild(addB);$(p.box).classList.toggle("one",L.length<2);S.set(S.i)};
 S.name=function(r){var k=p.list().indexOf(r),cb=$(p.p+"chips").querySelector('[data-ci="'+k+'"] .ct');if(cb)cb.textContent=r.name||("幹線"+(k+1))};
 S.go=function(i,instant){var cs=cards();if(!cs.length)return;i=Math.max(0,Math.min(cs.length-1,i));S.set(i);
