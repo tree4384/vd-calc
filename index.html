@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>電圧降下計算</title>
+<meta name="description" content="低圧・高圧幹線の電圧降下とケーブルサイズを計算し、幹線計算書をPDFで出力します。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="電圧降下">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef2f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1721" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+img{max-width:100%}
+</style>
+<style>
+/* Layout: 広い画面は左に入力(件名・幹線カード・下に固定の操作バー)、右に計算結果と計算書プレビューを固定表示。狭い画面は1列 */
+:root{--bg:#eef2f6;--card:#fff;--ink:#14212e;--sub:#5b6b7b;--line:#cfd8e1;--acc:#1f5fa8;--on-acc:#fff;--ok:#1a7f4b;--ng:#c0392b;--head:#e3eaf1;--brb:#f3f8fd;--zb:#f6f9fb;--brz:#e9f2fb;--brh:#d3e4f4;--desk:#d9e0e7;--font:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1721;--card:#18232f;--ink:#e8eef4;--sub:#9aabbb;--line:#2b3a4a;--acc:#6aa8ee;--on-acc:#0f1721;--ok:#4cc38a;--ng:#ff7b6b;--head:#1f2d3b;--brb:#1b2937;--zb:#1c2935;--brz:#203244;--brh:#27415a;--desk:#0b1219;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1721;--card:#18232f;--ink:#e8eef4;--sub:#9aabbb;--line:#2b3a4a;--acc:#6aa8ee;--on-acc:#0f1721;--ok:#4cc38a;--ng:#ff7b6b;--head:#1f2d3b;--brb:#1b2937;--zb:#1c2935;--brz:#203244;--brh:#27415a;--desk:#0b1219;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.6;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1640px;margin:0 auto}
+.top{margin-bottom:14px}
+.pjgrid{display:grid;grid-template-columns:2fr repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:1100px){.pjgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.pjn{grid-column:1/-1}}
+.tabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:2px solid var(--line)}
+.tabs button{font:inherit;font-weight:700;font-size:.95rem;padding:10px 18px;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:var(--sub);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--acc);border-bottom-color:var(--acc)}
+#hrt.stale,#hpv.stale{opacity:.45}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.colL,.colR{min-width:0}
+@media (min-width:1100px){
+.layout{grid-template-columns:540px minmax(0,1fr)}
+.colR{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding-right:2px;scrollbar-gutter:stable}
+}
+h1{font-size:1.3rem;margin:0 0 4px;text-wrap:balance}
+h2{font-size:1rem;margin:0 0 10px;letter-spacing:.02em}
+.lead{color:var(--sub);font-size:.85rem;margin:0;max-width:62em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:360px}
+.seg button{flex:1;padding:9px;font:inherit;font-size:.92rem;border:0;background:var(--card);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:var(--on-acc);font-weight:700}
+label{display:block;font-size:.75rem;color:var(--sub);margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+select,input{width:100%;height:2.5rem;font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:0 10px;min-width:0}
+input::placeholder{color:var(--sub);opacity:.7}
+select:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.f{min-width:0}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 10px;margin-top:10px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 10px;margin-top:10px}
+.span2{grid-column:span 2}
+@media (max-width:520px){.g3:not(.keep){grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mini.madd{width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:2.5rem;background:none;border:1px dashed var(--acc);color:var(--acc);font-weight:700}
+.mini.mdel{height:2.5rem;background:none;border-color:transparent;color:var(--sub);font-size:.8rem;padding:0 4px}
+.mini.mdel:hover{color:var(--ng)}
+.mm{margin-top:8px}
+label.chk.lcchk{margin-top:10px;font-weight:700;line-height:1.4;white-space:normal;overflow:visible;align-items:flex-start}
+label.chk.lcchk input{flex:none;width:1.1rem;height:1.1rem;margin:.1rem 0 0}
+.lcw{margin-top:4px;padding:2px 12px 12px;border-left:3px solid var(--acc);border-radius:0 8px 8px 0;background:var(--brb)}
+.lcw:not([hidden]){animation:lcopen .2s ease-out}
+@keyframes lcopen{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.lcw:not([hidden]){animation:none}}
+input.mname{font-weight:700}
+.rowlab{height:2.5rem;display:flex;align-items:center;padding:0 10px;border-radius:8px;background:var(--head);font-size:.85rem;font-weight:700;color:var(--ink)}
+.sec{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.sec h3{font-size:.78rem;margin:0;color:var(--acc);font-weight:700;letter-spacing:.08em}
+.rc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px 16px;margin-bottom:10px}
+.rh{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:6px;align-items:center}
+/* 幹線カードは横に並べて横スクロール。次のカードが少しのぞく幅にして、横に続くことがわかるようにする */
+.rnav{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+.chips{position:relative;display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;padding:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:6px;max-width:11em;font:inherit;font-size:.8rem;padding:3px 10px 3px 3px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.chip .cn{width:1.6em;height:1.6em;display:grid;place-items:center;border-radius:50%;background:var(--head);font-weight:700;font-size:.75rem;flex:none}
+.chip .ct{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip[aria-current="true"]{border-color:var(--acc);color:var(--acc);font-weight:700}
+.chip[aria-current="true"] .cn{background:var(--acc);color:var(--on-acc)}
+.nb{flex:none;width:2.2rem;height:2.2rem;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--acc);cursor:pointer;padding:0}
+.nb svg{width:18px;height:18px}
+.nb:disabled{opacity:.35;cursor:default}
+.rcount{flex:none;font-size:.78rem;color:var(--sub);font-variant-numeric:tabular-nums;min-width:3.2em;text-align:center}
+#rows,#hrows{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc(100% - 28px);gap:10px;align-items:start;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding-bottom:8px;margin-bottom:4px;scrollbar-width:thin}
+#rows.one,#hrows.one{grid-auto-columns:100%}
+#rows>.rc,#hrows>.rc{scroll-snap-align:start;margin-bottom:0}
+.rh input{font-weight:700}
+.rc.cl{padding:10px 16px 12px}
+.rc.cl .cbody{display:none}
+.sum{display:none;width:100%;margin-top:8px;text-align:left;font:inherit;font-size:.85rem;color:var(--sub);background:none;border:0;padding:0;cursor:pointer;line-height:1.5}
+.rc.cl .sum{display:block}
+.sum b{color:var(--ink);font-weight:700}
+.mini.tg{width:2.4em;height:2.4em;padding:0;display:grid;place-items:center;border-color:transparent;background:none;color:var(--acc)}
+.mini.tg svg{width:20px;height:20px;transition:transform .15s}
+.rc:not(.cl) .mini.tg svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.mini.tg svg{transition:none}}
+.rh .mini:not(.tg){background:none;border-color:transparent;color:var(--sub);padding:8px 6px}
+.rh .mini:not(.tg):hover{color:var(--ink);background:var(--bg)}
+.rn{width:1.9em;height:1.9em;display:grid;place-items:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:700;font-size:.85rem}
+.mini{font:inherit;font-size:.85rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer}
+.btns{display:flex;gap:10px;margin-bottom:14px;position:sticky;bottom:0;z-index:5;padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg)}
+.btns .btn{flex:1}
+.btn{font:inherit;font-weight:700;padding:11px 18px;border-radius:10px;border:1px solid var(--acc);background:var(--card);color:var(--acc);cursor:pointer}
+.btn.pri{background:var(--acc);color:var(--on-acc)}
+.btn:disabled{opacity:.5;cursor:default}
+details summary{cursor:pointer;margin-top:12px;font-size:.88rem;color:var(--sub)}
+label.chk{display:flex;align-items:center;gap:8px;margin:0;font-size:.92rem;color:var(--ink)}
+label.chk input{width:auto}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:10px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+#rt table,#hrt table{border-collapse:separate;border-spacing:0;width:100%;font-size:.86rem;font-variant-numeric:tabular-nums}
+#rt th,#rt td,#hrt th,#hrt td{padding:7px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);white-space:nowrap;text-align:center;background:var(--card)}
+#rt thead th,#hrt thead th{background:var(--head);color:var(--ink);font-weight:600;border-bottom:2px solid var(--sub)}
+#rt .c1,#hrt .c1{text-align:left;position:sticky;left:0;z-index:1;min-width:7em}
+#rt thead th.c1,#hrt thead th.c1{z-index:2}
+#rt td.br,#hrt td.br{background:var(--brb)}
+#rt thead th.gb,#hrt thead th.gb{background:var(--brh)}
+#rt .bl,#hrt .bl{border-left:2px solid var(--acc)}
+#rt tbody tr:nth-child(even) td:not(.br),#hrt tbody tr:nth-child(even) td:not(.br){background:var(--zb)}
+#rt tbody tr:nth-child(even) td.br,#hrt tbody tr:nth-child(even) td.br{background:var(--brz)}
+#rt tbody tr:last-child td,#hrt tbody tr:last-child td{border-bottom:0}
+#rt td.memo,#hrt td.memo{text-align:left;white-space:normal;min-width:18em}
+.sub{font-size:.75rem;color:var(--sub)}
+.ok{color:var(--ok)}.ng{color:var(--ng)}
+td.ng{font-weight:700}
+.badge{font-weight:700;padding:1px 9px;border-radius:999px;border:2px solid currentColor;font-size:.8rem}
+#rt.stale,#pv.stale{opacity:.45}
+.stale-msg{color:var(--ng);font-size:.85rem;margin:0 0 8px}
+.note{font-size:.8rem;color:var(--sub);margin:0}
+.note p{margin:0 0 8px}
+textarea.memo{display:block;min-height:3.6em;margin-top:8px;font-size:.95rem;resize:vertical}
+textarea{width:100%;min-height:6em;font:inherit;font-size:.8rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px}
+.pvbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px}
+.pvbar .f{width:auto}
+.desk{background:var(--desk);border-radius:10px;padding:14px;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:14px}
+.pgbox{position:relative;box-shadow:0 1px 3px rgba(0,0,0,.25);flex:none}
+.pgbox>.sheet{position:absolute;left:0;top:0;transform-origin:0 0}
+#pdfmsg{min-height:1.2em}
+/* ===== 幹線計算書(紙面)。紙なので常に白地・黒字で固定 ===== */
+.sheet{background:#fff;color:#111;font-family:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;font-variant-numeric:tabular-nums;padding:30px 34px 26px;display:flex;flex-direction:column;overflow:hidden}
+.sheet .sh{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:12px;border-bottom:2px solid #111;padding-bottom:6px}
+.sheet .sh .t{font-size:22px;font-weight:700;letter-spacing:.5em;text-align:center;padding-left:.5em}
+.sheet .sh .l{font-size:11px;line-height:1.5}
+.sheet .sh .r{font-size:11px;text-align:right;line-height:1.5}
+.sheet .sh b{font-size:13px}
+.sheet .cond{font-size:10px;margin:5px 0 6px;color:#333}
+.sheet .tb{flex:1;min-height:0;overflow:hidden}
+.sheet table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:9.5px;line-height:1.3}
+.sheet th,.sheet td{border:.8px solid #333;padding:2px 3px;text-align:center;vertical-align:middle;word-break:break-all;color:#111;background:#fff}
+.sheet thead th{background:#eef1f4;font-weight:700;font-size:9px}
+.sheet td.l{text-align:left}
+.sheet td.n{text-align:right}
+.sheet td .s2{display:block;border-top:.6px dotted #888;margin-top:1px;padding-top:1px}
+.sheet td.ngc{color:#b00;font-weight:700}
+.sheet .ft{margin-top:6px;border-top:1px solid #111;padding-top:5px;font-size:9px;line-height:1.5;display:grid;grid-template-columns:1.1fr 1fr;gap:4px 18px;color:#222}
+.sheet .ft p{margin:0}
+.sheet .pg{font-size:9px;text-align:right;margin-top:4px;color:#444}
+/* ===== 現場一覧(サイドバー)。広い画面は左に固定、狭い画面は引き出し ===== */
+#side{position:fixed;left:0;top:0;bottom:0;width:276px;z-index:40;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:12px;transform:translateX(-105%);transition:transform .2s ease}
+#side.open{transform:none;box-shadow:0 0 0 100vmax rgba(8,14,22,.38)}
+@media (prefers-reduced-motion:reduce){#side{transition:none}}
+.shd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.shd h2{margin:0;font-size:.95rem}
+.sx{font:inherit;border:0;background:none;color:var(--sub);cursor:pointer;padding:6px 8px;border-radius:8px}
+.sx:hover{background:var(--bg);color:var(--ink)}
+.snew{width:100%;font:inherit;font-weight:700;padding:10px 12px;border-radius:10px;border:1px solid var(--acc);background:var(--acc);color:var(--on-acc);cursor:pointer;text-align:left}
+.sq{margin:10px 0 6px;height:2.3rem;font-size:.88rem}
+.slist{list-style:none;margin:0 -4px;padding:0 4px;overflow:auto;flex:1;min-height:0}
+.slist li{margin:0 0 2px}
+.si{display:block;width:100%;text-align:left;font:inherit;border:0;background:none;color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+.si:hover{background:var(--bg)}
+.si .nm{display:block;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si .mt{display:block;font-size:.72rem;color:var(--sub);font-variant-numeric:tabular-nums}
+.slist li.on .si{background:var(--brh)}
+.slist li.on .si .nm{font-weight:700}
+.sacts{display:flex;gap:4px;padding:2px 6px 6px}
+.sacts button{font:inherit;font-size:.78rem;border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:7px;padding:3px 9px;cursor:pointer}
+.sacts button:hover{color:var(--ink)}
+.sacts .del:hover,.sacts .yes{color:var(--ng);border-color:var(--ng)}
+.sacts .q{font-size:.78rem;color:var(--ng);align-self:center;margin-right:2px}
+.sempty{font-size:.82rem;color:var(--sub);padding:8px 10px;margin:0}
+.ssync{font-size:.74rem;color:var(--sub);margin:8px 2px 0;padding-top:8px;border-top:1px solid var(--line)}
+.ssync.ng{color:var(--ng)}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.85rem;font-weight:700;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--acc);cursor:pointer;min-width:0;max-width:100%}
+.sbtn svg{width:16px;height:16px;flex:none}
+.sbtn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:1280px){
+#side{transform:none;box-shadow:none}
+body{padding-left:calc(276px + 20px)}
+.sbtn,#sClose{display:none}
+}
+.sbk{display:flex;gap:6px;margin-top:8px}
+.sbk button{flex:1;font:inherit;font-size:.8rem;font-weight:700;padding:7px 6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--acc);cursor:pointer;white-space:nowrap}
+.sbk button:hover{border-color:var(--acc)}
+.bkmsg{font-size:.74rem;color:var(--sub);margin:6px 2px 0;min-height:1em}
+.bkmsg.ng{color:var(--ng)}
+.shint{font-size:.74rem;line-height:1.5;color:var(--ink);background:var(--brb);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;margin:8px 0 0;padding:6px 8px}
+.savebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.savebar .btn{padding:8px 16px}
+</style>
+</head>
+<body>
+<aside id="side" aria-label="現場一覧">
+<div class="shd"><h2>現場</h2><button type="button" class="sx" id="sClose" aria-label="一覧を閉じる">閉じる</button></div>
+<button type="button" class="snew" id="sNew">＋ 新しい現場</button>
+<input id="sQ" class="sq" type="search" placeholder="現場名で探す" aria-label="現場名で探す">
+<ul class="slist" id="sList"></ul>
+<p class="ssync" id="sSync">この端末に保存しています</p>
+<div class="sbk"><button type="button" id="bkOut">データを書き出す</button><button type="button" id="bkIn">読み込む</button></div>
+<input type="file" id="bkFile" accept="application/json,.json" hidden>
+<p class="bkmsg" id="bkMsg" role="status"></p>
+<p class="shint" id="sHint" hidden>ホーム画面に追加して使うと、保存した現場が消えにくくなります(Safariの共有ボタン →「ホーム画面に追加」)。</p>
+</aside>
+<main>
+<header class="top"><div class="topbar"><button type="button" class="sbtn" id="sOpen" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h9"/></svg><span id="sCur">現場一覧</span></button></div><h1>電圧降下計算</h1>
+<p class="lead">幹線を入れて「計算する」を押すと、ケーブルの太さと判定が出て、幹線計算書をPDFで保存できます。低圧と高圧はタブで切り替えます。</p></header>
+<section class="card pjcard">
+<div class="pjgrid">
+<div class="f pjn"><label for="pjName">件名(建物名称)</label><input id="pjName" placeholder="件名を入力(例: ○○ビル新築工事)"></div>
+<div class="f"><label for="pjDate">作成日</label><input id="pjDate" inputmode="numeric" placeholder="空欄で今日"></div>
+<div class="f"><label for="pjCo">会社名</label><input id="pjCo"></div>
+<div class="f"><label for="pjBy">担当者</label><input id="pjBy"></div>
+<div class="f"><label for="ppr">PDFの用紙</label><select id="ppr"><option value="a4">A4 横</option><option value="a3">A3 横</option></select></div>
+<div class="f"><label for="pera">日付の書き方</label><select id="pera"><option value="w">和暦(令和)</option><option value="s">西暦</option></select></div>
+</div>
+</section>
+<div class="tabs" role="tablist" aria-label="低圧と高圧"><button type="button" role="tab" id="tabLv" aria-selected="true">低圧幹線</button><button type="button" role="tab" id="tabHv" aria-selected="false">高圧幹線(6.6kV)</button></div>
+<div id="lvView" class="layout"><div class="colL">
+
+<section class="card">
+<h2>低圧の共通条件</h2>
+<div class="g2" style="margin-top:0">
+<div class="f"><label for="pjSup">電源の供給方式</label><select id="pjSup"><option value="tr">構内の変圧器から供給</option><option value="lv">電気事業者から低圧で受電</option></select></div>
+<div class="f"><label>導体</label><div class="seg" role="group" aria-label="導体の材質"><button type="button" id="mCu" aria-pressed="true">銅</button><button type="button" id="mAl" aria-pressed="false">アルミ</button></div></div>
+</div>
+<div id="alwrap" hidden style="margin-top:10px">
+<label for="alr">銅に対する許容電流の比(アルミ)</label>
+<input id="alr" type="number" inputmode="decimal" step="0.01" placeholder="カタログの値から入力">
+<p class="note" style="margin-top:6px">電圧降下は、抵抗が銅の約1.64倍(導電率61%)として計算します。比が空のときは、許容電流の判定をせず、電圧降下だけでサイズを出します。</p>
+</div>
+</section>
+
+<div class="rnav" id="rnav"><button type="button" class="nb" id="rPrev" aria-label="前の幹線"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l-5 5 5 5"/></svg></button><div class="chips" id="rchips" aria-label="低圧幹線の一覧"></div><span class="rcount" id="rcount" aria-live="polite"></span><button type="button" class="nb" id="rNext" aria-label="次の幹線"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l5 5-5 5"/></svg></button></div>
+<div id="rows"></div>
+
+<div class="btns">
+<button type="button" class="btn" id="add">幹線を追加</button>
+<button type="button" class="btn pri" id="go">計算する</button>
+</div>
+
+<section class="card" id="cuscard" hidden>
+<h2>許容電流表(手入力)</h2>
+<p class="note">表にないケーブル(その他)は、手元の表から許容電流を入れてください。空欄のサイズは候補になりません。</p>
+<div class="f" style="margin-top:10px;max-width:260px"><label for="cty">表を入れるケーブル</label><select id="cty"><option value="other">その他</option></select></div>
+<div class="cg" id="cgrid"></div>
+</section>
+
+<details class="card">
+<summary style="margin-top:0">計算のしくみと根拠</summary>
+<div class="note" style="margin-top:10px">
+<p><b>電圧降下</b> e = k × L × I ÷ (1000 × A)。kは単相2線式35.6、三相3線式30.8、単相3線式・三相4線式17.8(内線規程の簡易式)。単相3線式は100V、三相4線式は相電圧で入れてください。電圧降下の電流は、負荷電流の単純和(需要率をかけた値)です。並列のときは断面積×条数で計算します。単線は、1.6mmを2.01mm²、2.0mmを3.14mm²、2.6mmを5.31mm²として計算します。</p>
+<p><b>許容電圧降下</b>(内線規程 JEAC 8001-2022 1310-1表)。構内の変圧器から供給: 60m以下は幹線3%、120m以下5%、200m以下6%、200m超7%。低圧受電: 60m以下は幹線2%、120m以下4%、200m以下5%、200m超6%。60m超の値は幹線と分岐の合計なので、分岐の分を残したいときは%を手で入れてください。</p>
+<p><b>負荷を計算する</b>(単相2線式・単相3線式)。kVA×戸数を合計し、戸数の合計で集合住宅の幹線の総合需要率をかけます(オール電化を除く集合住宅、内線規程の資料による標準値。1〜5戸100%、10戸70%、20戸54%、30戸49%、40戸46%。41戸以上は46%)。表は1戸4kVA程度の住戸を前提にしています。オール電化や共用部は別に考えてください。需要率は手で入れることもできます(0.59のように入れます。59のように1より大きい数は%として扱います)。電灯負荷として容量(kVA)のまま電圧で割って電流にするので、力率は使いません。</p>
+<p><b>設計負荷電流</b>(電技解釈第148条)。電動機の電流IMがほかの負荷IHより大きいとき、IMが50A以下なら1.25×IM+IH、50A超なら1.1×IM+IH。電動機のkWは、200V級4A/kW、400V級2A/kWで電流にします(線間電圧300V以下を200V級として扱います)。</p>
+<p><b>ブレーカー</b>は、指定がなければ設計負荷電流以上で最小の標準定格を自動で選びます。電動機なしの幹線は、許容電流が遮断器の定格以上。電動機ありの幹線は、遮断器の定格が「3×IM+IH」と「許容電流の2.5倍」の両方以下なら可(電技解釈第148条)。</p>
+<p><b>許容電流</b>は、送ってもらったExcel(幹線電圧降下計算プログラム VerD1)の線種別の表を使っています。三相は3導線、単相・直流は2導線の値です。敷設は「空中・ラック・がいし引き」「管路・電線管」「地中配管」の3つ。基準の周囲温度は、IV・HIVが30℃、そのほかは空中・管路が40℃、地中が25℃です。周囲温度を選ぶと、√((導体最高許容温度−周囲温度)÷(導体最高許容温度−基準温度))で補正します(FPの導体最高許容温度は75℃。600V EM-FPのカタログ値)。FPの空中の許容電流は、600V EM-FPのカタログ値(気中40℃)とExcelの値の小さいほうを使っています(単心を2条で使う場合はカタログの3条の値)。FPの管路・地中は、カタログに値がないため、Excelの「管路÷空中」「地中÷空中」の比を空中の値にかけて切り捨てた値です(外部の熱抵抗だけが変わるという許容電流計算式の考え方による)。さらに管路・電線管は、東京フジ・古河電工メタルケーブル・住電HSTの「気中暗渠電線管内布設」の値と比べて小さいほうを使っています(単心は単心3個より・2個よりの値)。気中の値は、フジクラ・ダイヤ、東京フジ、古河電工メタルケーブル、住電HSTの4社で同じです。FPT(耐火トリプレックス、EM-FPT)とFPD(耐火・単心2個より、EM-FPD)は住電HSTの「単心3個より」「単心2個より」の値(空中・管路)です。FPTを単相3線式で使うときは、中性線を数えずに単心2個よりの値をとります。FP-1Cを空中に布設するときは、単心3本の並べ方(間隔をあけるS=2d/くっつけるS=d、住電HSTの値)を選べます。地中はメーカーの値がないため表なし(電圧降下だけで選定)です。IV・HIV・EM-IE・EM-ICを電線管に入れるときは、電線本数による電流減少係数をかけます。多条布設の低減率は、建築設備設計基準の電流低減率表です。</p>
+<p>表にないケーブルは「その他」を選んで、許容電流を手で入れてください。許容電流の表がない組み合わせは、電圧降下だけで計算します。電動機の始動電流は入っていません。実際のケーブルの値は、仕様書やカタログで確認してください。</p>
+</div>
+</details>
+</div><div class="colR">
+<section class="card" aria-live="polite">
+<div class="rh" style="grid-template-columns:minmax(0,1fr) auto;margin-bottom:8px"><h2 style="margin:0">計算結果</h2><button type="button" class="mini" id="copy">表をコピー</button></div>
+<p class="stale-msg" id="stale" hidden>入力が変わりました。「計算する」を押すと表と計算書が更新されます。</p>
+<div class="tw" id="rt"></div>
+<p class="note" style="margin-top:8px">分岐選定は、幹線ブレーカー定格の35%(3m超〜8m)・55%(8m超)以上の許容電流になる最小サイズです(電技解釈第149条)。ケーブルは幹線と同じ種別・敷設条件の前提です。</p>
+<p class="note" id="cmsg" style="margin-top:8px"></p>
+<textarea id="tsv" hidden readonly aria-label="コピー用の表"></textarea>
+</section>
+
+<section class="card">
+<h2>幹線計算書(PDF)</h2>
+<div class="pvbar">
+<label class="chk"><input type="checkbox" id="pbr"> 分岐選定の列を入れる</label>
+<button type="button" class="btn pri" id="pdf">PDFを保存</button>
+</div>
+<p class="note" id="pdfmsg"></p>
+<div class="desk" id="pv"></div>
+</section>
+</div></div>
+
+<div id="hvView" class="layout" hidden><div class="colL">
+<section class="card">
+<h2>高圧の共通条件</h2>
+<div class="g2" style="margin-top:0">
+<div class="f"><label for="hIs">受電点の短絡電流(kA)</label><input id="hIs" type="number" inputmode="decimal" placeholder="空欄で12.5"></div>
+<div class="f"><label for="hT">短絡の遮断時間(秒)</label><input id="hT" type="number" inputmode="decimal" placeholder="空欄で0.3"></div>
+<div class="f"><label for="hHz">周波数</label><select id="hHz"><option value="50">50Hz(東日本)</option><option value="60">60Hz(西日本)</option></select></div>
+<div class="f"><label for="hTg">許容電圧降下の目標(%)</label><input id="hTg" type="number" inputmode="decimal" placeholder="空欄で2"></div>
+</div>
+<p class="note" style="margin-top:8px">公称電圧6,600Vの三相3線式で計算します。短絡電流は電力会社から聞いた値(わからなければ12.5kA)、遮断時間は継電器の動作時間と遮断器の遮断時間の合計です。</p>
+</section>
+<div class="rnav" id="hrnav"><button type="button" class="nb" id="hrPrev" aria-label="前の幹線"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l-5 5 5 5"/></svg></button><div class="chips" id="hrchips" aria-label="高圧幹線の一覧"></div><span class="rcount" id="hrcount" aria-live="polite"></span><button type="button" class="nb" id="hrNext" aria-label="次の幹線"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l5 5-5 5"/></svg></button></div>
+<div id="hrows"></div>
+<div class="btns">
+<button type="button" class="btn" id="hadd">幹線を追加</button>
+<button type="button" class="btn pri" id="hgo">計算する</button>
+</div>
+<details class="card">
+<summary style="margin-top:0">高圧の計算のしくみと根拠</summary>
+<div class="note" style="margin-top:10px">
+<p><b>負荷電流</b> I = S ÷ (√3 × 6.6kV)。kWのときは力率で割ります。需要率をかけた値です。</p>
+<p><b>電圧降下</b>(インピーダンス法) e = √3 × I × L × (R cosθ + X sinθ)。R・Xは導体温度90℃の交流導体実効抵抗とリアクタンス(矢崎エナジーシステム「常数篇」6kV-CV 3心CVT)。並列のときはR・Xを条数で割ります。高圧の電圧降下に法令の上限はないため、目標値(初期値2%)で判定します。</p>
+<p><b>許容電流</b>は6600V CVTの1回線の値です。気中・暗きょは周囲温度40℃、管路(1孔1条)と直接埋設は基底温度25℃、導体90℃(フジクラ・ダイヤ カタログ、JCS 0168系の資料)。周囲温度を選ぶと√((90−周囲温度)÷(90−基準温度))で補正します。表にない組み合わせ(管路・直埋の14・325・400sq)は候補になりません。</p>
+<p><b>短絡時の熱的強度</b> A ≧ I × √t ÷ K。Kは架橋ポリエチレン・銅導体で134(短絡前90℃→短絡時230℃、日本電線工業会『電線要覧』)。並列でも1条ごとにこの太さを満たすか見ています(安全側)。</p>
+<p><b>保護機器</b>は、定格電流が負荷電流以上か、定格遮断電流(PAS・LBSは短時間耐電流)が短絡電流以上かを見ます。空欄のところは判定しません。</p>
+<p><b>末端の短絡電流</b>は、電源側を受電点の短絡電流から求めたリアクタンスとして、ケーブルのインピーダンスを足して計算しています(参考値)。</p>
+</div>
+</details>
+</div><div class="colR">
+<section class="card" aria-live="polite">
+<h2>計算結果</h2>
+<p class="stale-msg" id="hstale" hidden>入力が変わりました。「計算する」を押すと表と計算書が更新されます。</p>
+<div class="tw" id="hrt"></div>
+</section>
+<section class="card">
+<h2>高圧幹線計算書(PDF)</h2>
+<div class="pvbar"><button type="button" class="btn pri" id="hpdf">PDFを保存</button></div>
+<p class="note" id="hpdfmsg"></p>
+<div class="desk" id="hpv"></div>
+</section>
+</div></div>
+</main>
+<script>
+var K={"1p2":35.6,"3p3":30.8,"1p3":17.8,"3p4":17.8};
+var DV={"1p2":100,"3p3":200,"1p3":100,"3p4":240};
+var SYS={"1p2":"1φ2W","3p3":"3φ3W","1p3":"1φ3W","3p4":"3φ4W"};
+var S=["2","3.5","5.5","8","14","22","38","60","80","100","150","200","250","325","400","500"];
+var STD=[10,15,20,30,40,50,60,75,100,125,150,175,200,225,250,300,350,400,500,600,700,800,1000,1200,1600];
+/* 許容電流表(送ってもらったExcel「幹線電圧降下計算プログラム VerD1」の各シートから)。
+   a3=3導線(三相)、a2=2導線(単相・直流)。各行は[空中・ラック・がいし引き, 管路・電線管, 地中配管]。tc=導体最高許容温度、b=各敷設の基準周囲温度 */
+var CAB=[{"name":"EM-IE","sheet":"EMIE","tc":75,"b":[40,40,null],"sz":["1.6","2.0","5.5","8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[29,20,null],[38,26,null],[53,36,null],[66,45,null],[95,66,null],[124,86,null],[175,122,null],[234,164,null],[322,224,null],[426,298,null],[506,354,null],[600,420,null],[702,491,null],[804,562,null],[909,636,null]],"a2":[[29,20,null],[38,26,null],[53,36,null],[66,45,null],[95,66,null],[124,86,null],[175,122,null],[234,164,null],[322,224,null],[426,298,null],[506,354,null],[600,420,null],[702,491,null],[804,562,null],[909,636,null]]},{"name":"EM-IC","sheet":"EMIC","tc":90,"b":[40,40,null],"sz":["1.6","2.0","5.5","8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[35,24,null],[45,31,null],[63,44,null],[78,54,null],[113,78,null],[148,103,null],[209,146,null],[280,196,null],[384,268,null],[510,356,null],[605,423,null],[717,502,null],[839,587,null],[961,672,null],[1087,760,null]],"a2":[[35,24,null],[45,31,null],[63,44,null],[78,54,null],[113,78,null],[148,103,null],[209,146,null],[280,196,null],[384,268,null],[510,356,null],[605,423,null],[717,502,null],[839,587,null],[961,672,null],[1087,760,null]]},{"name":"EM-EEF-2C","sheet":"EMEEF","tc":60,"b":[40,40,40],"sz":["1.6","2.0","2.6"],"a3":[[null,null,null],[null,null,null],[null,null,null]],"a2":[[18,14,17],[23,19,23],[33,27,32]]},{"name":"EM-EEF-3C","sheet":"EMEEF","tc":60,"b":[40,40,40],"sz":["1.6","2.0","2.6"],"a3":[[20,16,19],[26,21,25],[36,29,34]],"a2":[[24,19,23],[31,25,30],[43,34,40]]},{"name":"EM-EE-1C","sheet":"EMEE","tc":60,"b":[40,40,40],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325","400","500","600","800","1000"],"a3":[[27,19,23],[38,26,31],[50,35,42],[63,44,52],[88,61,73],[115,80,96],[165,115,138],[220,154,184],[305,213,255],[395,276,331],[475,332,398],[540,378,453],[635,444,532],[720,504,604],[815,570,684],[900,630,756],[1135,794,952],[1300,910,1092]],"a2":[[27,19,23],[38,26,31],[50,35,42],[63,44,52],[88,61,73],[115,80,96],[165,115,138],[220,154,184],[305,213,255],[395,276,331],[475,332,398],[540,378,453],[635,444,532],[720,504,604],[815,570,684],[900,630,756],[1135,794,952],[1300,910,1092]]},{"name":"EM-EE-2C","sheet":"EMEE","tc":60,"b":[40,40,40],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]],"a2":[[24,19,23],[34,27,32],[45,36,43],[56,45,54],[79,63,75],[105,84,100],[145,116,139],[195,156,187],[270,216,259],[350,280,336],[425,340,408],[490,392,470],[585,468,561]]},{"name":"EM-EE-3C","sheet":"EMEE","tc":60,"b":[40,40,40],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[20,16,19],[28,22,26],[38,30,36],[47,37,44],[66,53,63],[88,70,84],[120,96,115],[165,132,158],[225,180,216],[295,236,283],[360,288,345],[410,328,393],[495,396,475]],"a2":[[24,19,23],[34,27,32],[45,36,43],[56,45,54],[79,63,75],[105,84,100],[145,116,139],[195,156,187],[270,216,259],[350,280,336],[425,340,408],[490,392,470],[585,468,561]]},{"name":"EM-CE-1C","sheet":"EMCE","tc":90,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[31,null,null],[44,null,null],[58,null,null],[72,46,53],[100,63,72],[130,82,94],[190,110,126],[255,150,172],[355,215,246],[455,275,314],[545,340,388],[620,395,451],[725,475,542],[815,535,610],[920,615,702]],"a2":[[31,null,null],[44,null,null],[58,null,null],[72,51,59],[100,69,79],[130,92,105],[190,125,143],[255,165,189],[355,230,263],[455,310,354],[545,370,422],[620,435,496],[725,505,576],[815,580,662],[920,675,770]]},{"name":"EM-CE-2C","sheet":"EMCE","tc":90,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]],"a2":[[28,23,27],[39,31,36],[52,41,47],[65,51,59],[91,70,80],[120,93,107],[170,135,154],[225,175,200],[310,245,280],[400,320,365],[485,390,445],[560,455,519],[660,540,616]]},{"name":"EM-CE-3C","sheet":"EMCE","tc":90,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[23,19,23],[33,26,33],[44,35,43],[54,43,53],[76,59,73],[100,77,96],[140,110,130],[190,150,175],[260,210,235],[340,265,305],[410,335,365],[470,380,410],[555,450,480]],"a2":[[28,23,27],[39,31,36],[52,41,47],[65,51,59],[91,70,80],[120,93,107],[170,135,154],[225,175,200],[310,245,280],[400,320,365],[485,390,445],[560,455,519],[660,540,616]]},{"name":"EM-CET","sheet":"EMCET","tc":90,"b":[40,40,25],"sz":["8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[62,46,52],[86,63,72],[110,82,93],[155,110,125],[210,150,171],[290,215,245],[380,275,313],[465,340,387],[535,395,450],[635,475,541],[725,535,610],[835,615,701]],"a2":[[66,51,58],[91,69,78],[120,92,105],[165,125,142],[225,165,188],[310,230,262],[400,310,353],[490,370,421],[565,435,496],[670,505,575],[765,580,661],[880,675,769]]},{"name":"EM-CEQ","sheet":"EMCEQ","tc":90,"b":[40,40,25],"sz":["8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[62,46,52],[86,63,72],[110,82,93],[155,110,125],[210,150,171],[290,215,245],[380,275,313],[465,340,387],[535,395,450],[635,475,541],[725,535,610],[835,615,701]],"a2":[[66,51,58],[91,69,78],[120,92,105],[165,125,142],[225,165,188],[310,230,262],[400,310,353],[490,370,421],[565,435,496],[670,505,575],[765,580,661],[880,675,769]]},{"name":"IV","sheet":"IV","tc":60,"b":[30,30,null],"sz":["1.6","2.0","5.5","8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[27,19,null],[35,24,null],[49,34,null],[61,42,null],[88,61,null],[115,80,null],[162,113,null],[217,152,null],[298,208,null],[395,276,null],[469,328,null],[556,389,null],[650,455,null],[745,521,null],[842,589,null]],"a2":[[27,19,null],[35,24,null],[49,34,null],[61,42,null],[88,61,null],[115,80,null],[162,113,null],[217,152,null],[298,208,null],[395,276,null],[469,328,null],[556,389,null],[650,455,null],[745,521,null],[842,589,null]]},{"name":"HIV","sheet":"HIV","tc":75,"b":[30,30,null],"sz":["1.6","2.0","5.5","8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[33,23,null],[43,29,null],[60,41,null],[74,51,null],[107,74,null],[141,98,null],[198,138,null],[265,186,null],[365,254,null],[483,338,null],[574,401,null],[681,476,null],[796,557,null],[912,638,null],[1031,721,null]],"a2":[[33,23,null],[43,29,null],[60,41,null],[74,51,null],[107,74,null],[141,98,null],[198,138,null],[265,186,null],[365,254,null],[483,338,null],[574,401,null],[681,476,null],[796,557,null],[912,638,null],[1031,721,null]]},{"name":"VVF-2C","sheet":"VVF","tc":60,"b":[40,40,40],"sz":["1.6","2.0","2.6"],"a3":[[null,null,null],[null,null,null],[null,null,null]],"a2":[[18,14,18],[23,19,25],[33,27,35]]},{"name":"VVF-3C","sheet":"VVF","tc":60,"b":[40,40,40],"sz":["1.6","2.0","2.6"],"a3":[[15,12,16],[20,16,21],[28,23,30]],"a2":[[18,14,18],[23,19,25],[33,27,35]]},{"name":"VVR-1C","sheet":"VVR","tc":60,"b":[40,40,40],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325","400","500","600","800","1000"],"a3":[[20,null,null],[28,null,null],[37,null,null],[47,null,null],[66,null,null],[88,null,null],[120,null,null],[165,null,null],[230,null,null],[295,null,null],[350,null,null],[400,null,null],[470,null,null],[525,null,null],[590,null,null],[645,null,null],[825,null,null],[940,null,null]],"a2":[[20,null,null],[28,null,null],[37,null,null],[47,null,null],[66,null,null],[88,null,null],[120,null,null],[165,null,null],[230,null,null],[295,null,null],[350,null,null],[400,null,null],[470,null,null],[525,null,null],[590,null,null],[645,null,null],[825,null,null],[940,null,null]]},{"name":"VVR-2C","sheet":"VVR","tc":60,"b":[40,40,40],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]],"a2":[[18,15,20],[25,20,26],[33,27,35],[42,34,45],[59,46,60],[78,61,80],[110,88,116],[145,115,152],[200,160,211],[255,205,270],[310,250,330],[355,295,389],[420,345,455]]},{"name":"VVR-3C","sheet":"VVR","tc":60,"b":[40,40,40],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[15,12,16],[21,17,22],[28,23,30],[36,28,37],[50,39,51],[66,53,70],[93,73,96],[120,99,130],[165,135,178],[220,175,231],[260,215,284],[300,245,323],[355,290,383]],"a2":[[18,15,20],[25,20,26],[33,27,35],[42,34,45],[59,46,60],[78,61,80],[110,88,116],[145,115,152],[200,160,211],[255,205,270],[310,250,330],[355,295,389],[420,345,455]]},{"name":"CV-1C","sheet":"CV","tc":90,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[31,null,null],[44,null,null],[58,null,null],[72,46,52],[100,63,72],[130,82,93],[190,110,125],[255,150,171],[355,215,245],[455,275,313],[545,340,387],[620,395,450],[725,475,541],[815,535,610],[920,615,701]],"a2":[[31,null,null],[44,null,null],[58,null,null],[72,51,58],[100,69,78],[130,92,105],[190,125,142],[255,165,188],[355,230,262],[455,310,353],[545,370,421],[620,435,496],[725,505,575],[815,580,661],[920,675,769]]},{"name":"CV-2C","sheet":"CV","tc":90,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]],"a2":[[28,23,26],[39,31,35],[52,41,46],[65,51,58],[91,70,79],[120,93,106],[170,135,154],[225,175,199],[310,245,279],[400,320,364],[485,390,444],[560,455,518],[660,540,615]]},{"name":"CV-3C","sheet":"CV","tc":90,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[23,19,23],[33,26,33],[44,35,43],[54,43,53],[76,59,73],[100,77,96],[140,110,130],[190,150,175],[260,210,235],[340,265,305],[410,335,365],[470,380,410],[555,450,480]],"a2":[[28,23,26],[39,31,35],[52,41,46],[65,51,58],[91,70,79],[120,93,106],[170,135,154],[225,175,199],[310,245,279],[400,320,364],[485,390,444],[560,455,518],[660,540,615]]},{"name":"CVT","sheet":"CVT","tc":90,"b":[40,40,25],"sz":["8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[62,46,52],[86,63,72],[110,82,93],[155,110,125],[210,150,171],[290,215,245],[380,275,313],[465,340,387],[535,395,450],[635,475,541],[725,535,610],[835,615,701]],"a2":[[66,51,58],[91,69,78],[120,92,105],[165,125,142],[225,165,188],[310,230,262],[400,310,353],[490,370,421],[565,435,496],[670,505,575],[765,580,661],[880,675,769]]},{"name":"CVQ","sheet":"CVQ","tc":90,"b":[40,40,25],"sz":["8","14","22","38","60","100","150","200","250","325","400","500"],"a3":[[62,46,52],[86,63,72],[110,82,93],[155,110,125],[210,150,171],[290,215,245],[380,275,313],[465,340,387],[535,395,450],[635,475,541],[725,535,610],[835,615,701]],"a2":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]},{"name":"FP-1C","sheet":"FP","tc":75,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[27,20,24],[37,26,32],[49,35,42],[62,44,53],[86,54,70],[115,71,93],[160,96,123],[215,130,160],[300,185,222],[390,235,286],[465,290,338],[530,340,379],[620,405,435]],"a2":[[27,20,25],[37,28,34],[49,37,44],[62,47,56],[86,59,75],[115,79,98],[160,105,132],[215,140,169],[300,200,235],[390,265,301],[465,315,357],[530,370,405],[620,430,464]],"sd":[22,31,41,52,72,96,130,180,250,325,390,445,520]},{"name":"FP-2C","sheet":"FP","tc":75,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]],"a2":[[24,19,24],[33,25,33],[44,34,44],[56,44,56],[77,57,76],[100,79,96],[145,115,138],[195,150,179],[265,210,239],[345,275,305],[415,335,364],[475,385,419],[565,460,483]]},{"name":"FP-3C","sheet":"FP","tc":75,"b":[40,40,25],"sz":["2","3.5","5.5","8","14","22","38","60","100","150","200","250","325"],"a3":[[20,15,20],[28,21,28],[37,29,37],[47,36,47],[65,49,63],[87,66,83],[120,93,111],[160,125,148],[220,178,198],[290,230,254],[350,280,301],[405,325,345],[475,385,401]],"a2":[[24,19,24],[33,25,33],[44,34,44],[56,44,56],[77,57,76],[100,79,96],[145,115,138],[195,150,179],[265,210,239],[345,275,305],[415,335,364],[475,385,419],[565,460,483]]},{"name":"FPT","sheet":"FP","tc":75,"b":[40,40,25],"sz":["14","22","38","60","100","150","200","250","325"],"a3":[[73,54,null],[97,71,null],[135,96,null],[180,130,null],[245,185,null],[325,235,null],[395,290,null],[460,340,null],[545,405,null]],"a2":[[78,59,null],[100,79,null],[145,105,null],[190,140,null],[265,200,null],[340,265,null],[420,315,null],[485,370,null],[575,430,null]]},{"name":"FPD","sheet":"FP","tc":75,"b":[40,40,25],"sz":["14","22","38","60","100","150","200","250","325"],"a3":[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]],"a2":[[78,59,null],[100,79,null],[145,105,null],[190,140,null],[265,200,null],[340,265,null],[420,315,null],[485,370,null],[575,430,null]]}];
+var CABM={};CAB.forEach(function(t){CABM[t.name]=t});
+var CT_ORDER=["IV","HIV","VVF-2C","VVF-3C","VVR-1C","VVR-2C","VVR-3C","CV-1C","CV-2C","CV-3C","CVT","CVQ","FP-1C","FP-2C","FP-3C","FPT","FPD","EM-IE","EM-IC","EM-EEF-2C","EM-EEF-3C","EM-EE-1C","EM-EE-2C","EM-EE-3C","EM-CE-1C","EM-CE-2C","EM-CE-3C","EM-CET","EM-CEQ"];
+var CT_GROUPS=[["一般",CT_ORDER.slice(0,17)],["エコ電線(EM)",CT_ORDER.slice(17)],["その他",["other"]]];
+var CT_LBL={"other":"その他(許容電流表を入力)","FP-1C":"FP-1C(耐火)","FP-2C":"FP-2C(耐火)","FP-3C":"FP-3C(耐火)","FPT":"FPT(耐火トリプレックス)","FPD":"FPD(耐火・単心2個より)"};
+var WIRES={"IV":1,"HIV":1,"EM-IE":1,"EM-IC":1};
+/* 単線の公称断面積(mm²)。1.6mm=2.01、2.0mm=3.14、2.6mm=5.31 */
+var MMS={"1.6":2.01,"2.0":3.14,"2.6":5.31};
+function AREA(k){return MMS[k]!=null?MMS[k]:+k}
+function szLabel(k){return MMS[k]!=null?k+"mm":k+"sq"}
+var PF={"3":0.7,"4":0.63,"6":0.56,"15":0.49};
+/* 多条布設の電流低減率(建築設備設計基準 / JCS 0168)。[配列, S=D, S=2D, S=3D] */
+var ML=[["1段×2列",.85,.95,1],["1段×3列",.8,.95,1],["1段×4〜6列",.7,.9,.95],["1段×7〜20列",.7,.8,null],
+["2段×2列",.7,.9,.95],["2段×3列",.6,.9,.95],["2段×4列",.6,.85,.9],["2段×5列",.56,.73,null],["2段×6列",.53,.72,null],["2段×7列",.51,.71,null],["2段×8〜20列",.5,.7,null],
+["3段×3列",.48,.8,.85],["3段×4列",.41,.8,.85],["3段×5列",.37,.68,null],["3段×6列",.34,.66,null],["3段×7列",.32,.65,null],["3段×8列",.31,.65,null],["3段×9〜10列",.3,.64,null],["3段×11〜12列",.3,.63,null],["3段×13〜15列",.3,.62,null],["3段×16〜19列",.3,.61,null],["3段×20列",.3,.6,null]];
+var M_OPTS=[["1p2","単相2線式"],["3p3","三相3線式"],["1p3","単相3線式"],["3p4","三相4線式(相電圧)"]];
+var U_OPTS=[["kVA","容量 kVA"],["kW","電力 kW"],["A","電流 A"]];
+var INS_OPTS=[["0","空中・ラック・がいし引き"],["1","管路・電線管"],["2","地中配管"]];
+var N_OPTS=[["3","3本以下"],["4","4本"],["6","5〜6本"],["15","7〜15本"]];
+var TMP_OPTS=[["","基準温度のまま"],["25","25℃"],["30","30℃"],["35","35℃"],["40","40℃"],["45","45℃"],["50","50℃"]];
+var MLS_OPTS=[["","多条布設なし"],["1","中心間隔 S=D"],["2","中心間隔 S=2D"],["3","中心間隔 S=3D"]];
+var MLA_OPTS=ML.map(function(m,i){return [String(i),m[0]]});
+var PAR_OPTS=[["1","1条"],["2","2条"],["3","3条"],["4","4条"]];
+var SD_OPTS=[["2","間隔をあける(S=2d)"],["1","くっつける(S=d)"]];
+/* S=dの値がある単心ケーブルを空中に布設するときだけ、並べ方を選べる */
+function hasSd(ct,ins){var T=CABM[ct];return !!(T&&T.sd)&&String(ins)==="0"}
+function szOpts(ct){return [["","自動(最小サイズ)"]].concat(sizesFor({ct:ct}).map(function(k){return [k,szLabel(k)]}))}
+var BK_OPTS=[["","自動(設計電流から選ぶ)"]].concat(STD.map(function(s){return [String(s),s+" A"]}));
+var MB_OPTS=[["","なし(記載しない)"]].concat(STD.map(function(s){return [String(s),s+" A"]}));
+var KEY="vd-calc-v6",OLDKEY="vd-calc-v5";
+var $=function(id){return document.getElementById(id)};
+/* 開いた欄の頭を、画面の上から同じ位置(セーフエリア+12px)にそろえる */
+function revealTop(el){if(!el)return;var off=(parseFloat(getComputedStyle(document.documentElement).paddingTop)||0)+12,y=window.scrollY+el.getBoundingClientRect().top-off,rm=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;window.scrollTo({top:Math.max(0,y),behavior:rm?"auto":"smooth"})}
+/* 閉じたとき、欄の頭が画面の上に隠れていたら同じ位置まで戻す */
+function afterClose(el){if(el&&el.getBoundingClientRect().top<0)revealTop(el)}
+var MAT="cu",rows=[],nextId=1,LASTTSV="",LASTOS=[],CUS={other:{}};
+var PJ={name:"",date:"",co:"",by:"",sup:"tr",ppr:"a4",era:"w",br:false,mode:"lv",hIs:"",hT:"",hHz:"50",hTg:""};
+var MODE="lv",rowsH=[],LASTHOS=[];
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function lbl(opts,v){for(var i=0;i<opts.length;i++){if(String(opts[i][0])===String(v))return opts[i][1]}return v}
+function defRow(){return {id:nextId++,name:"",kei:"",load:"",m:"3p3",v:200,u:"kVA",x:"",pf:"",dm:"",mx:"",ms:[""],mn:[""],mdm:"",l:"",size:"",t:"",bk:"",mb:"",ct:"CV-3C",ins:"0",n:"3",d:"1",c:"",cl:false,tmp:"",mls:"",mla:"1",par:"1",sd:"2",memo:"",lc:false,ls:[{k:"",n:""}],ldm:""}}
+function normRow(o){var r=defRow();for(var k in o){if(Object.prototype.hasOwnProperty.call(r,k))r[k]=o[k]}
+r.ms=Array.isArray(o.ms)&&o.ms.length?o.ms.map(String):[o.mx!=null?String(o.mx):""];r.mx="";
+r.mn=r.ms.map(function(_,i){return Array.isArray(o.mn)&&o.mn[i]!=null?String(o.mn[i]):""});
+var OC={iv:"IV",cv1:"CV-1C",cv2:"CV-2C",cv3:"CV-3C",cvd:"CV-2C",cvt:"CVT",fpcvt:"FP-3C"};if(OC[r.ct])r.ct=OC[r.ct];
+if(r.ct!=="other"&&!CABM[r.ct])r.ct="CV-3C";
+r.lc=!!o.lc;r.ls=Array.isArray(o.ls)&&o.ls.length?o.ls.map(function(x){return {k:String(x&&x.k||""),n:String(x&&x.n||"")}}):[{k:"",n:""}];
+var OI={air:"0",pipe:"1",bury:"2",duct:"2"};if(OI[r.ins])r.ins=OI[r.ins];if(["0","1","2"].indexOf(String(r.ins))<0)r.ins="0";r.ins=String(r.ins);
+if(r.size!==""){var k=String(r.size);if(MMS[k]==null&&WIRES[r.ct]&&k==="2")k="1.6";else if(WIRES[r.ct]&&k==="3.5")k="2.0";r.size=sizesFor({ct:r.ct}).indexOf(k)>=0?k:""}
+return r}
+function mVals(r){return (r.ms||[]).filter(function(v){return isNum(v)&&+v>0}).map(Number)}
+function mSum(r){return mVals(r).reduce(function(a,b){return a+b},0)}
+function fmtKw(x){return String(Math.round(x*100)/100)}
+function rowById(id){for(var i=0;i<rows.length;i++){if(String(rows[i].id)===String(id))return rows[i]}return null}
+function isNum(v){return String(v).trim()!==""&&isFinite(+v)}
+function is3(m){return m==="3p3"||m==="3p4"}
+function lineV(m,v){return m==="3p4"?v*Math.sqrt(3):v}
+function apkW(m,v){return lineV(m,v)<=300?4:2}
+
+function toA(u,x,pf,m,V){var f={"1p2":1,"3p3":Math.sqrt(3),"1p3":2,"3p4":3}[m];if(u==="A")return x;var s=u==="kW"?(pf>0&&pf<=1?x/pf:NaN):x;return s*1000/(f*V)}
+function arOf(){if(MAT!=="al")return 1;var r=+$("alr").value;return r>0?r:null}
+function kOf(m){return K[m]*(MAT==="al"?1.64:1)}
+function pickMin(list,fn){for(var i=0;i<list.length;i++){if(fn(list[i]))return list[i]}return null}
+function sizesFor(sp){if(sp.ct==="other")return S;var T=CABM[sp.ct];return T?T.sz:S}
+function wOf(m){return (m==="3p3"||m==="3p4")?3:2}
+function colOf(sp){var T=CABM[sp.ct];if(!T)return null;return (sp.w===3?T.a3:T.a2).map(function(a){return a[+sp.ins]})}
+function supR(sp){if(sp.ct==="other")return Object.keys(CUS.other).some(function(k){return CUS.other[k]>0});var c=colOf(sp);return !!(c&&c.some(function(v){return v!=null}))}
+/* 周囲温度の補正 √((導体最高許容温度−周囲温度)÷(導体最高許容温度−基準温度)) */
+function tmpF(sp){
+if(sp.tmp==="")return 1;var T=CABM[sp.ct];if(!T||!T.tc)return 1;
+var th=+sp.tmp,tb=T.b[+sp.ins];if(tb==null)tb=T.b[0];if(th>=T.tc)return 0;
+return Math.round(Math.sqrt((T.tc-th)/(T.tc-tb))*100)/100}
+function mlF(sp){if(sp.mls==="")return 1;var m=ML[+sp.mla];if(!m)return 1;var v=m[+sp.mls];return v==null?null:v}
+function noTc(r){var T=CABM[r.ct];return r.tmp!==""&&!!T&&!T.tc}
+function facOf(sp){var a=tmpF(sp),b=mlF(sp);if(b==null)return null;return a*b*(isNum(sp.c)&&+sp.c>0?+sp.c:1)}
+function ampR(sp,s){
+if(!supR(sp))return null;
+var ar=arOf();if(ar==null)return null;
+var fac=facOf(sp);if(fac==null)return null;
+var b,f=1;
+if(sp.ct==="other")b=CUS.other[s];
+else{var c=colOf(sp),i=CABM[sp.ct].sz.indexOf(s);b=i>=0?c[i]:null;if(sp.sd&&i>=0&&b!=null)b=Math.min(b,CABM[sp.ct].sd[i]);if(WIRES[sp.ct]&&sp.ins==="1")f=(PF[sp.n]||0.7)/0.7}
+if(b==null||!(b>0))return null;
+return Math.floor(b*f*fac*ar+0.2)*(+sp.par||1)}
+
+function spT(r){return {ct:r.ct,ins:String(r.ins),n:r.n,c:r.c,tmp:r.tmp,mls:r.mls,mla:r.mla,par:r.par,w:wOf(r.m),sd:hasSd(r.ct,r.ins)&&r.sd==="1"}}
+function autoT(L){var lv=PJ.sup==="lv";if(L<=60)return lv?2:3;if(L<=120)return lv?4:5;if(L<=200)return lv?5:6;return lv?6:7}
+
+/* 負荷を計算する(単相): kVA × 戸数の合計に、集合住宅の戸数による需要率をかける。
+   需要率はオール電化を除く集合住宅の幹線の総合需要率(内線規程の資料による標準値、1戸4kVA相当)。41戸以上は40戸の46%を使う */
+var MDF=[100,100,100,100,100,91,83,78,73,70,67,64,62,61,59,58,57,56,55,54,53,53,52,51,51,50,50,50,49,49,49,48,48,48,47,47,47,47,47,46];
+/* 需要率は0.59のように入れる。1より大きい数(59など)は%として扱う */
+function pct(v){var x=+v;return x>1?x/100:x}
+function mdf(n){if(!(n>0))return null;return (n>40?46:MDF[n-1])/100}
+function lcOn(r){return !!r.lc&&(r.m==="1p2"||r.m==="1p3")}
+function lcSum(r){var kw=0,n=0;(r.ls||[]).forEach(function(x){var k=+x.k,c=+x.n;if(k>0&&c>0){kw+=k*c;n+=c}});return {kw:kw,n:n,auto:mdf(n)}}
+function lcDm(r){var s=lcSum(r);return isNum(r.ldm)&&+r.ldm>0?pct(r.ldm):s.auto}
+function lcPatch(r){var s=lcSum(r);if(!(s.kw>0))return {x:""};return {u:"kVA",x:String(s.kw),dm:String(lcDm(r))}}
+function effR(r){return lcOn(r)?Object.assign({},r,lcPatch(r)):r}
+function calcRow(r0){
+var r=effR(r0),o={r:r0,rr:r,notes:[],warn:[]};
+var V=+r.v,L=+r.l,par=+r.par||1,sp=spT(r);
+var hasG=isNum(r.x),hasM=is3(r.m)&&mSum(r)>0;
+o.hasM=hasM;
+if(!(V>0)||!isNum(r.l)||L<0||(!hasG&&!hasM)){o.err="電圧・こう長・負荷を入れてください";return o}
+var dm=isNum(r.dm)&&+r.dm>0?pct(r.dm):1,mdm=isNum(r.mdm)&&+r.mdm>0?pct(r.mdm):1;
+o.dm=dm;o.mdm=mdm;
+o.Ih=hasG?toA(r.u,+r.x,isNum(r.pf)?+r.pf:0.85,r.m,V)*dm:0;
+o.Im=hasM?mSum(r)*mdm*apkW(r.m,V):0;
+if(!isFinite(o.Ih)||o.Ih<0){o.err="負荷の値を確認してください(kWのときは力率も)";return o}
+o.Is=o.Ih+o.Im;
+o.Id=(o.Im>o.Ih)?o.Ih+o.Im*(o.Im<=50?1.25:1.1):o.Is;
+o.tAuto=!isNum(r.t);o.T=o.tAuto?autoT(L):+r.t;
+if(!(o.T>0)){o.err="許容電圧降下を確認してください";return o}
+o.eA=V*o.T/100;o.k=kOf(r.m);
+o.needA=o.k*L*o.Is/(1000*o.eA);
+var In,auto;
+if(+r.bk>0){In=+r.bk;auto=false}else{In=pickMin(STD,function(s){return s>=o.Id-1e-9});auto=true}
+if(!In){o.err="設計電流が標準の遮断器の範囲を超えています";return o}
+o.In=In;o.auto=auto;
+var list=sizesFor(sp);
+o.recV=pickMin(list,function(s){return AREA(s)*par>=o.needA-1e-9});
+o.tbl=supR(sp)&&arOf()!=null&&facOf(sp)!=null;
+var reqA=hasM?Math.max(o.Id,In/2.5):Math.max(o.Id,In);o.reqA=reqA;
+o.recA=o.tbl?pickMin(list,function(s){var a=ampR(sp,s);return a!=null&&a>=reqA-1e-9}):null;
+var size;
+if(r.size!==""&&list.indexOf(String(r.size))>=0){size=String(r.size);o.fixed=true}
+else size=o.tbl?((o.recV&&o.recA)?(AREA(o.recV)>=AREA(o.recA)?o.recV:o.recA):null):o.recV;
+o.size=size;
+if(sp.sd)o.notes.push("単心をくっつけて布設(S=d)の許容電流");
+if(!o.tbl){
+if(facOf(sp)==null)o.notes.push("この配列とS=3Dの低減率は表にありません");
+else if(!supR(sp))o.notes.push("許容電流は表がない組み合わせ(電圧降下のみで選定)");
+else o.notes.push("アルミの許容電流比が未入力(電圧降下のみで選定)")}
+/* ケーブルと方式の組み合わせ */
+var c2=/-2C$/.test(r.ct)||r.ct==="FPD",c3=/-3C$/.test(r.ct),tp=(r.ct==="CVT"||r.ct==="EM-CET"||r.ct==="FPT"),qp=(r.ct==="CVQ"||r.ct==="EM-CEQ");
+if(noTc(r))o.notes.push(r.ct+"は導体の許容温度が表にないため、周囲温度の補正をしていません");
+if(r.m!=="1p2"&&c2)o.warn.push("3線・4線式に2心ケーブルは使えません");
+if(qp&&r.m!=="3p4")o.warn.push("カドプレックスは三相4線式専用です");
+if(r.m==="3p4"&&(tp||c2||c3))o.warn.push("三相4線式にこのケーブルは使えません(4心か単心)");
+if(r.m==="1p2"&&(tp||qp||c3))o.warn.push("2線式にこのケーブルは使えません");
+if(!size){o.err="最大サイズでも足りません(並列条数を増やしてください)";return o}
+o.e=o.k*L*o.Is/(1000*AREA(size)*par);o.ep=o.e/V*100;o.dropOK=o.e<=o.eA+1e-9;
+o.amp=o.tbl?ampR(sp,size):null;
+o.ampOK=o.tbl?(o.amp!=null&&o.amp>=reqA-1e-9):null;
+o.bkOK=In>=o.Id-1e-9;
+if(!o.bkOK)o.warn.push("遮断器が設計負荷電流より小さい");
+if(hasM){o.bkMax=3*o.Im+o.Ih;if(In>o.bkMax+1e-9){o.warn.push("遮断器が3×IM+IH("+o.bkMax.toFixed(0)+"A)を超えています");o.bkOK=false}}
+if(!o.dropOK)o.warn.push("電圧降下が許容を超えています");
+if(o.ampOK===false)o.warn.push(o.amp==null?"このサイズは許容電流の表にありません":(hasM&&o.amp<In/2.5?"許容電流×2.5が遮断器の定格に足りません":"許容電流が足りません"));
+o.ok=o.dropOK&&o.ampOK!==false&&o.bkOK&&!o.warn.some(function(w){return w.indexOf("ケーブル")>=0||w.indexOf("カドプレックス")>=0});
+o.br=null;
+if(o.tbl){var lst=list,sp1=Object.assign({},sp,{par:"1"});
+o.br=[0.35,0.55].map(function(ra){var req=o.In*ra,sz=pickMin(lst,function(x){var a=ampR(sp1,x);return a!=null&&a>=req});return {req:req,size:sz,amp:sz?ampR(sp1,sz):null}})}
+return o}
+
+var INSS={"0":"空中","1":"管路・電線管","2":"地中"};
+function wireName(r,s){var p=+r.par||1,m=String(r.ct).match(/^(.*?)(-\dC)?$/),base=r.ct==="other"?"":m[1]+" ",core=r.ct==="other"?"":(m[2]||"");return base+szLabel(s)+core+(p>1?" ×"+p:"")+(MAT==="al"?"(Al)":"")}
+function f1(x){return (x!=null&&isFinite(x))?x.toFixed(1):"-"}
+function f2(x){return (x!=null&&isFinite(x))?x.toFixed(2):"-"}
+function badge(ok){return ok?'<span class="badge ok">OK</span>':'<span class="badge ng">NG</span>'}
+function sysLabel(r){var v=+r.v;if(r.m==="1p3")return SYS[r.m]+" "+(2*v)+"/"+v+"V";if(r.m==="3p4"){var L=Math.round(v*Math.sqrt(3)/5)*5;return SYS[r.m]+" "+L+"/"+v+"V"}return SYS[r.m]+" "+v+"V"}
+function memoOf(o){var m=[];if(o.err)m.push(o.err);m=m.concat(o.warn||[],o.notes||[]);if(o.r.memo)m.push(o.r.memo);return m.join(" / ")}
+
+var HT=["設計電流(A)","ブレーカー(A)","電線","許容電流(A)","降下(V)","降下(%)","許容(%)","判定"];
+var HB=["3m以下","3m超〜8m","8m超"];
+function runCalc(){
+var os=rows.map(calcRow);LASTOS=os;
+var h='<table><thead><tr><th class="c1" rowspan="2">回路</th><th colspan="'+HT.length+'">幹線</th><th class="gb bl" colspan="3">分岐選定</th><th rowspan="2" style="text-align:left">メモ</th></tr><tr>';
+HT.forEach(function(x){h+='<th>'+x+'</th>'});
+HB.forEach(function(x,i){h+='<th class="gb'+(i===0?' bl':'')+'">'+x+'</th>'});
+h+='</tr></thead><tbody>';
+var tsv=[["回路"].concat(HT,HB.map(function(x){return "分岐 "+x}),["メモ"]).join("\t")];
+os.forEach(function(o,i){
+var r=o.r,nm=(i+1)+". "+(r.name||"回路"+(i+1))+(r.load?" → "+r.load:"");
+var c=[];
+if(o.err&&!o.In){c=[["-"],["-"],["-"],["-"],["-"],["-"],["-"],['<span class="badge ng">要確認</span>',"要確認"]]}
+else{
+var bk=o.In+' <span class="sub">('+(o.auto?"自動":"指定")+')</span>';
+c.push([f1(o.Id)+(o.hasM?' <span class="sub">(IM'+f1(o.Im)+')</span>':''),f1(o.Id)]);
+c.push([bk,o.In+(o.auto?"(自動)":"(指定)"),o.bkOK===false?"ng":""]);
+if(o.err){c.push(["-"],["-"],["-"],["-"],[o.T+(o.tAuto?' <span class="sub">自動</span>':''),String(o.T)],['<span class="badge ng">要確認</span>',"要確認"])}
+else{
+c.push(['<b>'+esc(wireName(r,o.size))+'</b>',wireName(r,o.size)]);
+c.push([o.amp!=null?o.amp:"-",null,o.ampOK===false?"ng":""]);
+c.push([f2(o.e)+' <span class="sub">/'+f2(o.eA)+'</span>',f2(o.e)+"/"+f2(o.eA),o.dropOK?"":"ng"]);
+c.push([f2(o.ep),null,o.dropOK?"":"ng"]);
+c.push([o.T+(o.tAuto?' <span class="sub">自動</span>':''),String(o.T)]);
+c.push([badge(o.ok),o.ok?"OK":"NG"])}}
+var line=[nm];
+h+='<tr><td class="c1">'+esc(nm)+'</td>';
+c.forEach(function(x){h+='<td'+(x[2]?' class="'+x[2]+'"':'')+'>'+x[0]+'</td>';line.push(String(x[1]!=null?x[1]:x[0]).replace(/<[^>]+>/g,""))});
+var bc=o.br?[["負荷による","負荷電流で選定"]].concat(o.br.map(function(q){return q.size?['<b>'+szLabel(q.size)+'</b>',szLabel(q.size)+"(許容"+q.amp+"A/必要"+q.req.toFixed(0)+"A)"]:["超","超(必要"+q.req.toFixed(0)+"A以上)","ng"]})):[["-"],["-"],["-"]];
+bc.forEach(function(x,j){h+='<td class="br'+(j===0?' bl':'')+(x[2]?' '+x[2]:'')+'">'+x[0]+'</td>';line.push(x[1]!=null?x[1]:x[0])});
+var mt=memoOf(o);if(!o.br&&!o.err)mt=(mt?mt+" / ":"")+"分岐選定は許容電流の表があるときだけ出ます";
+h+='<td class="memo">'+esc(mt)+'</td></tr>';line.push(mt);
+tsv.push(line.map(function(s){return String(s).replace(/[\t\r\n]/g," ")}).join("\t"))});
+h+='</tbody></table>';
+$("rt").innerHTML=h;LASTTSV=tsv.join("\n");
+eachCard(function(c,r){if(r)c.querySelector(".sum").innerHTML=sumHTML(r)});
+$("rt").classList.remove("stale");$("pv").classList.remove("stale");$("stale").hidden=true;
+renderPreview()}
+
+/* ===== 幹線計算書(紙面) ===== */
+var PAPER={a4:{w:1123,h:794,mm:[297,210],sc:2.6},a3:{w:1123,h:794,mm:[420,297],sc:3.6}};
+function dateText(){
+var d=new Date(),mm=String(PJ.date||"").trim().match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);if(mm){var t=new Date(+mm[1],+mm[2]-1,+mm[3]);if(!isNaN(t))d=t}
+var y=d.getFullYear(),m=d.getMonth()+1,dd=d.getDate();
+if(PJ.era==="w"){var ry=y-2018;return "令和"+(ry===1?"元":ry)+"年"+m+"月"+dd+"日"}
+return y+"年"+m+"月"+dd+"日"}
+function cols(){
+var c=[["No.",2.4],["幹線番号<br>又は名称",8],["負荷名称",9],["電気方式<br>電圧[V]",8.6],["こう長<br>L[m]",4],["負荷容量<br>(×需要率)",8.5],["負荷電流<br>単純和<br>[A]",5],["設計<br>負荷電流<br>I[A]",5],["主幹器<br>定格<br>[A]",4.3],["幹線保護<br>遮断器<br>[AT]",4.6],["許容<br>電圧降下<br>[%]/e[V]",5.4],["電圧降下<br>による太さ<br>A[mm²]",6.2],["遮断器定格<br>による太さ<br>[mm²]",5.8],["設計<br>電線種別<br>及び太さ",9.5],["許容電流<br>[A]",4.6],["電圧降下<br>e[V]<br>[%]",5],["判定",3.6]];
+if(PJ.br)c.push(["分岐<br>3m超〜8m<br>/8m超",6.5]);
+c.push(["備考",PJ.br?9.6:12.6]);return c}
+function loadCell(o){
+var r=o.rr||o.r,a=[];
+if(lcOn(o.r)&&isNum(r.x)){var ls=lcSum(o.r);a.push(fmtKw(ls.kw)+" kVA"+(o.dm&&o.dm!==1?" ×"+o.dm:""));a.push("計"+ls.n+"戸")}
+else if(isNum(r.x))a.push((o.hasM?"一般 ":"")+r.x+" "+r.u+(o.dm&&o.dm!==1?" ×"+o.dm:""));
+if(o.hasM){var mv=mVals(r);a.push("動力 "+fmtKw(mSum(r))+" kW"+(mv.length>1?"("+mv.length+"台)":"")+(o.mdm&&o.mdm!==1?" ×"+o.mdm:""))}
+if(!a.length)return "-";
+if(a.length===1)return esc(a[0]);
+return esc(a[0])+'<span class="s2">'+esc(a[1])+'</span>'}
+function sheetRow(o,i){
+var r=o.r,t=[];
+var bad=o.err&&!o.In;
+t.push(['',i+1]);
+t.push(['l',esc(r.name||"")]);
+t.push(['l',esc(r.load||"")]);
+t.push(['',esc(sysLabel(r))]);
+t.push(['n',isNum(r.l)?esc(r.l):"-"]);
+t.push(['n',loadCell(o)]);
+t.push(['n',bad?"-":f1(o.Is)+(o.hasM?'<span class="s2">IM '+f1(o.Im)+'</span>':'')]);
+t.push(['n',bad?"-":f1(o.Id)]);
+t.push(['n',r.mb?esc(r.mb):"-"]);
+t.push([o.bkOK===false?'ngc':'',bad?"-":o.In]);
+t.push(['',bad?"-":o.T+"%"+'<span class="s2">'+f2(o.eA)+'</span>']);
+t.push(['',bad?"-":f1(o.needA)+(o.recV?'<span class="s2">→ '+szLabel(o.recV)+(+r.par>1?" ×"+r.par:"")+'</span>':'')]);
+t.push(['',(bad||!o.recA)?"-":szLabel(o.recA)+(+r.par>1?" ×"+r.par:"")]);
+t.push(['',(o.size&&!o.err)?esc(wireName(r,o.size)):"-"]);
+t.push([o.ampOK===false?'ngc':'n',(o.amp!=null&&!o.err)?o.amp:"-"]);
+t.push([o.dropOK===false?'ngc':'n',(o.e!=null&&!o.err)?f2(o.e)+'<span class="s2">'+f2(o.ep)+'%</span>':"-"]);
+t.push([o.ok?'':'ngc',o.err?"要確認":(o.ok?"OK":"NG")]);
+if(PJ.br)t.push(['',o.br?o.br.map(function(q){return q.size?szLabel(q.size):"超"}).join(" / "):"-"]);
+var notes=[];if(o.err)notes.push(o.err);notes=notes.concat(o.warn||[]);
+var sp=spT(r),cond=[INSS[r.ins]||""];
+if(r.ins==="1"&&WIRES[r.ct])cond.push(lbl(N_OPTS,r.n));
+if(r.tmp!=="")cond.push(r.tmp+"℃");
+if(r.mls!==""){var m=ML[+r.mla];cond.push((m?m[0]:"")+" S="+(r.mls==="1"?"":r.mls)+"D")}
+if(isNum(r.c)&&+r.c!==1)cond.push("補正×"+r.c);
+var fac=facOf(sp);if(fac!=null&&fac!==1&&!(isNum(r.c)&&+r.c!==1&&r.tmp===""&&r.mls===""))cond.push("係数"+fac.toFixed(2));
+notes.unshift("敷設:"+cond.join("・"));
+if(o.auto===false)notes.push("遮断器指定");
+if(o.fixed)notes.push("サイズ指定");
+notes=notes.concat((o.notes||[]).map(function(n){return n.replace("(電圧降下のみで選定)","").replace("(電圧降下のみ)","")+"(電圧降下のみで選定)"}));
+if(r.memo)notes.push(r.memo);
+t.push(['l',esc(r.memo||"")]);
+return '<tr>'+t.map(function(c){return '<td'+(c[0]?' class="'+c[0]+'"':'')+'>'+c[1]+'</td>'}).join("")+'</tr>'}
+function sheetShell(pg){
+if(MODE==="hv")return hSheetShell(pg);
+var c=cols(),P=PAPER[PJ.ppr];
+var d=document.createElement("div");d.className="sheet";d.style.width=P.w+"px";d.style.height=P.h+"px";
+var supT=PJ.sup==="lv"?"電気事業者から低圧で受電":"構内の変圧器から供給";
+d.innerHTML='<div class="sh"><div class="l">件名<br><b>'+esc(PJ.name||"")+'</b></div><div class="t">幹線計算書</div><div class="r">'+esc(dateText())+(PJ.co?'<br>'+esc(PJ.co):'')+(PJ.by?'<br>担当 '+esc(PJ.by):'')+'</div></div>'+
+'<div class="cond">計算方法: 簡易法(内線規程 JEAC 8001-2022)/ 供給方式: '+supT+' / 導体: '+(MAT==="al"?"アルミ":"銅")+'</div>'+
+'<div class="tb"><table><colgroup>'+c.map(function(x){return '<col style="width:'+x[1]+'%">'}).join("")+'</colgroup><thead><tr>'+c.map(function(x){return '<th>'+x[0]+'</th>'}).join("")+'</tr></thead><tbody></tbody></table></div>'+
+'<div class="ft"><div><p>○電圧降下(簡易式) 単相2線式 e = 35.6・L・I/(1000・A)、三相3線式 e = 30.8・L・I/(1000・A)、単相3線式・三相4線式 e\' = 17.8・L・I/(1000・A)'+(MAT==="al"?'(アルミは係数×1.64)':'')+'</p><p>e: 線間の電圧降下[V]、e\': 外側線又は各相の1線と中性線間の電圧降下[V]、L: こう長[m]、I: 負荷電流の単純和[A]、A: 断面積[mm²](並列は×条数)</p><p>○許容電圧降下: 内線規程 1310-1表(60m以下 幹線'+(PJ.sup==="lv"?"2":"3")+'%、120m以下 '+(PJ.sup==="lv"?"4":"5")+'%、200m以下 '+(PJ.sup==="lv"?"5":"6")+'%、200m超 '+(PJ.sup==="lv"?"6":"7")+'%。60m超は幹線・分岐の合計)</p></div>'+
+'<div><p>○設計負荷電流: 電気設備技術基準の解釈 第148条(IM＞IHのとき、IM≦50Aは1.25IM+IH、IM＞50Aは1.1IM+IH)。電動機は200V級4A/kW、400V級2A/kWで換算</p><p>○幹線保護遮断器: 電動機なしは許容電流以下、電動機ありは3IM+IH以下かつ許容電流×2.5以下(同第148条)</p><p>○許容電流: 内線規程ほかによる各ケーブルの許容電流表(IV・HIVは周囲温度30℃、そのほかは空中・管路40℃、地中25℃基準。IV・HIV・EM-IE・EM-IC の管路は電線管3本以下)に、周囲温度・多条布設の補正を乗じた値</p></div></div>'+
+'<div class="pg">'+pg+'</div>';
+return d}
+function buildPages(){
+var HV=MODE==="hv",os=HV?LASTHOS:LASTOS,rowF=HV?hSheetRow:sheetRow,colF=HV?hCols:cols,host=document.createElement("div");
+host.style.cssText="position:absolute;left:-20000px;top:0;";document.body.appendChild(host);
+var pages=[],cur=null,i=0;
+function newPage(){cur=sheetShell("0 / 0");host.appendChild(cur);pages.push(cur);return cur.querySelector("tbody")}
+var tb=newPage();
+if(!os.length)tb.innerHTML='<tr><td colspan="'+colF().length+'">幹線がありません</td></tr>';
+for(i=0;i<os.length;i++){
+tb.insertAdjacentHTML("beforeend",rowF(os[i],i));
+var box=cur.querySelector(".tb");
+if(box.scrollHeight>box.clientHeight+1&&tb.children.length>1){tb.lastElementChild.remove();tb=newPage();tb.insertAdjacentHTML("beforeend",rowF(os[i],i))}}
+pages.forEach(function(p,k){p.querySelector(".pg").textContent=(k+1)+" / "+pages.length});
+document.body.removeChild(host);
+return pages}
+function renderPreview(){
+var pv=$(MODE==="hv"?"hpv":"pv");pv.innerHTML="";
+var pages=buildPages(),P=PAPER[PJ.ppr];
+var w=Math.min(pv.clientWidth-28,P.w);if(!(w>0))w=P.w;var sc=w/P.w;
+pages.forEach(function(p){var b=document.createElement("div");b.className="pgbox";b.style.width=(P.w*sc)+"px";b.style.height=(P.h*sc)+"px";p.style.transform="scale("+sc+")";b.appendChild(p);pv.appendChild(b)})}
+var rzT;window.addEventListener("resize",function(){clearTimeout(rzT);rzT=setTimeout(renderPreview,200)});
+
+async function makePdf(){
+var HV=MODE==="hv",btn=$(HV?"hpdf":"pdf"),msg=$(HV?"hpdfmsg":"pdfmsg"),TITLE=HV?"高圧幹線計算書":"幹線計算書";
+if(!window.jspdf||!window.html2canvas){msg.textContent="PDFの部品を読み込めませんでした。ページを開き直してから、もう一度押してください。";return}
+btn.disabled=true;msg.textContent="PDFを作っています…";
+var host=document.createElement("div");host.style.cssText="position:absolute;left:-20000px;top:0;";document.body.appendChild(host);
+try{
+if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+var P=PAPER[PJ.ppr],pages=buildPages();
+var pdf=new window.jspdf.jsPDF({orientation:"landscape",unit:"mm",format:PJ.ppr});
+for(var k=0;k<pages.length;k++){
+host.appendChild(pages[k]);
+var cv=await window.html2canvas(pages[k],{scale:P.sc,backgroundColor:"#ffffff",logging:false,width:P.w,height:P.h,windowWidth:P.w+40});
+host.removeChild(pages[k]);
+if(k>0)pdf.addPage(PJ.ppr,"landscape");
+pdf.addImage(cv.toDataURL("image/jpeg",0.92),"JPEG",0,0,P.mm[0],P.mm[1])}
+pdf.setProperties({title:TITLE+" "+(PJ.name||"")});
+var blob=pdf.output("blob");
+var fn=TITLE+(PJ.name?"_"+PJ.name.replace(/[\\\/:*?"<>|]/g,""):"")+".pdf";
+deliverFile(blob,fn,msg,false);
+}catch(e){msg.textContent="PDFを作れませんでした: "+(e&&e.message||e)}
+finally{if(host.parentNode)document.body.removeChild(host);btn.disabled=false}}
+
+/* ===== 入力カード ===== */
+var PH={x:"例: 30",mx:"例: 22",l:"例: 80",v:"例: 200",t:"自動(こう長から)",pf:"空欄なら0.85",dm:"空欄なら1",mdm:"空欄なら1",c:"空欄なら1",memo:"空欄なら記載なし"};
+function fin(l,f,v,cls,step,type){return '<div class="f'+(cls?' '+cls:'')+'"><label>'+l+'</label><input data-f="'+f+'" type="'+(type||"number")+'"'+(type?'':' inputmode="decimal"')+(step?' step="'+step+'"':'')+' placeholder="'+(PH[f]||'')+'" value="'+esc(v)+'"></div>'}
+function fsel(l,f,opts,v,cls){return '<div class="f'+(cls?' '+cls:'')+'"><label>'+l+'</label><select data-f="'+f+'">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(String(v)===String(o[0])?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div>'}
+function kwOpts(v){var a=['<option value="">kVA</option>'];for(var k=1;k<=100;k++)a.push('<option value="'+k+'"'+(String(v)===String(k)?' selected':'')+'>'+k+' kVA</option>');if(v!==""&&!(+v>=1&&+v<=100&&Math.floor(+v)===+v))a.push('<option value="'+esc(v)+'" selected>'+esc(v)+' kVA</option>');return a.join("")}
+function cntOpts(v){var a=['<option value="">戸数</option>'];for(var k=1;k<=20;k++)a.push('<option value="'+k+'"'+(String(v)===String(k)?' selected':'')+'>'+k+' 戸</option>');return a.join("")}
+function lcSumText(r){var s=lcSum(r);if(!(s.kw>0))return "kVAと戸数を選ぶと、合計と需要率が出ます";return "合計 "+fmtKw(s.kw)+" kVA ・ "+s.n+" 戸 → 需要率 "+Math.round(s.auto*100)+"%"+(s.n>40?"(41戸以上は46%)":"")}
+function lcHTML(r){
+var h=r.ls.map(function(x,i){return '<div class="g3 keep mm"><div class="f">'+(i?'':'<label>容量(kVA)</label>')+'<select data-lk="'+i+'" aria-label="負荷'+(i+1)+'の容量(kVA)">'+kwOpts(x.k)+'</select></div>'+
+'<div class="f">'+(i?'':'<label>戸数</label>')+'<select data-ln="'+i+'" aria-label="負荷'+(i+1)+'の戸数">'+cntOpts(x.n)+'</select></div>'+
+'<div class="f">'+(i?'':'<label>&nbsp;</label>')+(r.ls.length>1?'<button type="button" class="mini mdel" data-act="ldel" data-li="'+i+'" aria-label="負荷'+(i+1)+'を削除">削除</button>':'')+'</div></div>'}).join("");
+var s=lcSum(r);
+return h+'<div class="mm"><button type="button" class="mini madd" data-act="ladd">＋ 負荷を追加</button></div>'+
+'<p class="note lcsum" style="margin-top:8px">'+esc(lcSumText(r))+'</p>'+
+'<div class="g2"><div class="f"><label>需要率(空欄で自動)</label><input data-f="ldm" type="number" inputmode="decimal" step="0.01" placeholder="'+(s.auto!=null?"自動 "+s.auto.toFixed(2):"自動")+'" value="'+esc(r.ldm)+'"></div></div>'}
+function motorsHTML(r){
+var h=r.ms.map(function(v,i){return '<div class="g3 keep mm"><div class="f">'+(i?'':'<label>電動機</label>')+'<input class="mname" data-mn="'+i+'" type="text" placeholder="電動機'+(i+1)+'" value="'+esc((r.mn||[])[i]||"")+'" aria-label="電動機'+(i+1)+'の名称"></div>'+
+'<div class="f">'+(i?'':'<label>出力(kW)</label>')+'<input data-mi="'+i+'" type="number" inputmode="decimal" placeholder="例: 22" value="'+esc(v)+'" aria-label="電動機'+(i+1)+'の出力(kW)"></div>'+
+'<div class="f">'+(i?'':'<label>&nbsp;</label>')+(r.ms.length>1?'<button type="button" class="mini mdel" data-act="mdel" data-mi="'+i+'" aria-label="電動機'+(i+1)+'を削除">削除</button>':'')+'</div></div>'}).join("");
+return h+'<div class="mm"><button type="button" class="mini madd" data-act="madd">＋ 電動機を追加</button></div>'+
+'<div class="g2"><div class="f"><label>合計</label><div class="rowlab msum">'+fmtKw(mSum(r))+' kW</div></div>'+fin('需要率','mdm',r.mdm,'','0.05')+'</div>'}
+function fselCT(v){return '<div class="f"><label>ケーブルの種別</label><select data-f="ct">'+CT_GROUPS.map(function(g){return '<optgroup label="'+g[0]+'">'+g[1].map(function(k){return '<option value="'+k+'"'+(k===v?' selected':'')+'>'+(CT_LBL[k]||k)+'</option>'}).join("")+'</optgroup>'}).join("")+'</select></div>'}
+function rowHTML(r,pos){return '<article class="rc'+(r.cl?' cl':'')+'" data-id="'+r.id+'">'+
+'<div class="rh"><span class="rn">'+pos+'</span><input data-f="name" value="'+esc(r.name)+'" placeholder="幹線番号" aria-label="幹線番号"><button type="button" class="mini" data-act="dup">複製</button><button type="button" class="mini" data-act="del">削除</button><button type="button" class="mini tg" data-act="tog" aria-expanded="'+(!r.cl)+'" aria-label="'+(r.cl?'ひらく':'たたむ')+'">'+CHEV+'</button></div>'+
+'<button type="button" class="sum" data-act="open"></button><div class="cbody">'+
+'<div class="g2" style="grid-template-columns:1fr">'+fin('負荷名称','load',r.load,'','', 'text')+'</div>'+
+'<div class="g2">'+fsel('配電方式','m',M_OPTS,r.m)+fin('基準電圧(V)','v',r.v)+'</div>'+
+'<div class="sec"><h3>負荷</h3>'+
+'<label class="chk lcchk"><input type="checkbox" data-f="lc"'+(r.lc?' checked':'')+'> 負荷を計算する(kVA × 戸数、需要率は戸数から自動)</label>'+
+'<div class="lcw">'+lcHTML(r)+'</div>'+
+'<div class="g3 keep gw">'+fsel('一般負荷','u',U_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="例: 30" value="'+esc(r.x)+'"></div>'+fin('需要率','dm',r.dm,'','0.05')+'</div>'+
+'<div class="g3 keep pfrow"><div></div>'+fin('力率(cosφ)','pf',r.pf,'','0.05')+'</div>'+
+'<div class="mrow">'+motorsHTML(r)+'</div>'+
+'</div>'+
+'<div class="sec"><h3>幹線</h3>'+
+'<div class="g3">'+fselCT(r.ct)+fsel('敷設方法','ins',INS_OPTS,r.ins)+fsel('並列条数','par',PAR_OPTS,r.par)+
+fsel('電線管内の電線本数','n',N_OPTS,r.n,'nw')+fsel('単心の並べ方','sd',SD_OPTS,r.sd||"2",'sdw')+'</div>'+
+'<div class="g3">'+fin('こう長(m)','l',r.l)+fin('許容電圧降下(%)','t',r.t,'','0.5')+fsel('電線サイズ','size',szOpts(r.ct),r.size)+
+fsel('幹線保護の遮断器','bk',BK_OPTS,r.bk)+fsel('主幹器(盤側)','mb',MB_OPTS,r.mb)+'</div>'+
+'<details><summary class="cs"></summary>'+
+'<div class="g3">'+fsel('周囲温度','tmp',TMP_OPTS,r.tmp)+fsel('多条布設','mls',MLS_OPTS,r.mls)+fsel('配列(段×列)','mla',MLA_OPTS,r.mla,'mlw')+fin('その他の補正係数','c',r.c,'','0.05')+'</div>'+
+'</details>'+
+'</div>'+
+'<div class="sec"><h3>備考</h3>'+
+'<textarea data-f="memo" rows="2" class="memo" aria-label="備考(計算書に載ります)">'+esc(r.memo)+'</textarea>'+
+'</div>'+
+'</div></article>'}
+var CHEV='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function sumHTML(r){
+var a=[];if(r.load)a.push(esc(r.load));a.push(esc(sysLabel(r)));
+if(isNum(r.l))a.push(esc(r.l)+"m");
+if(lcOn(r)){var ls0=lcSum(r);if(ls0.kw>0)a.push(fmtKw(ls0.kw)+"kVA・"+ls0.n+"戸 需要率"+Math.round(lcDm(r)*100)+"%")}
+else if(isNum(r.x))a.push(esc(r.x)+" "+r.u);
+if(is3(r.m)&&mSum(r)>0)a.push("動力 "+fmtKw(mSum(r))+"kW"+(mVals(r).length>1?"("+mVals(r).length+"台)":""));
+var o=null;for(var i=0;i<LASTOS.length;i++){if(LASTOS[i].r===r)o=LASTOS[i]}
+var res="";
+if(o&&!o.err&&o.size)res=' → <b>'+esc(wireName(r,o.size))+' / '+o.In+'A</b> <span class="'+(o.ok?'ok':'ng')+'">'+(o.ok?'OK':'NG')+'</span>';
+else if(o&&o.err)res=' → <span class="ng">要確認</span>';
+return a.join(" / ")+res+''}
+function refreshRow(card,r){
+var U={A:"電流(A)",kW:"電力(kW)",kVA:"容量(kVA)"};
+card.querySelector(".xl").textContent=U[r.u];
+var lon=lcOn(r);
+card.querySelector(".lcchk").hidden=!(r.m==="1p2"||r.m==="1p3");
+card.querySelector(".lcw").hidden=!lon;card.querySelector(".gw").hidden=lon;
+card.querySelector(".pfrow").hidden=lon||r.u!=="kW";
+card.querySelector(".mrow").hidden=!is3(r.m);
+card.querySelector(".nw").hidden=!(r.ins==="1"&&WIRES[r.ct]);
+card.querySelector(".sdw").hidden=!hasSd(r.ct,r.ins);
+card.querySelector(".mlw").hidden=r.mls==="";
+var ex="";
+var f=facOf(spT(r));
+card.querySelector(".sum").innerHTML=sumHTML(r);
+var cp=[];if(r.tmp!=="")cp.push("周囲"+r.tmp+"℃");if(r.mls!==""&&ML[+r.mla])cp.push("多条 "+ML[+r.mla][0]);if(isNum(r.c)&&+r.c!==1)cp.push("係数×"+r.c);
+card.querySelector(".cs").textContent="補正(周囲温度・多条布設): "+(cp.length?cp.join(" / "):"なし")+(f==null?" / この配列の低減率なし":(f!==1?" → 合計係数 "+f.toFixed(2):""))+(noTc(r)?" / "+r.ct+"は周囲温度の補正なし":"");
+}
+function updateCus(){$("cuscard").hidden=!rows.some(function(r){return r.ct==="other"})}
+function renderRows(){
+$("rows").innerHTML=rows.map(function(r,i){return rowHTML(r,i+1)}).join("");
+Array.prototype.forEach.call($("rows").querySelectorAll(".rc"),function(card){refreshRow(card,rowById(card.getAttribute("data-id")))});
+updateCus();LS.chips()}
+/* ===== 横スクロールの移動(低圧・高圧で共通) ===== */
+function Strip(p){
+var S={i:0},scT=0;
+function cards(){return $(p.box).querySelectorAll(".rc")}
+function rm(){return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)}
+S.set=function(i){var L=p.list();i=Math.max(0,Math.min(i,L.length-1));S.i=i;var c=$(p.p+"chips"),ch=c.children;
+for(var k=0;k<ch.length;k++){var on=k===i;ch[k].setAttribute("aria-current",on?"true":"false");
+if(on){var X=ch[k].offsetLeft,W=ch[k].offsetWidth;if(X<c.scrollLeft)c.scrollLeft=X-4;else if(X+W>c.scrollLeft+c.clientWidth)c.scrollLeft=X+W-c.clientWidth+4}}
+$(p.p+"count").textContent=(i+1)+" / "+L.length;$(p.p+"Prev").disabled=i<=0;$(p.p+"Next").disabled=i>=L.length-1};
+S.chips=function(){var L=p.list();$(p.p+"chips").innerHTML=L.map(function(r,i){return '<button type="button" class="chip" data-ci="'+i+'" aria-current="false"><span class="cn">'+(i+1)+'</span><span class="ct">'+esc(r.name||("幹線"+(i+1)))+'</span></button>'}).join("");$(p.box).classList.toggle("one",L.length<2);S.set(S.i)};
+S.name=function(r){var k=p.list().indexOf(r),cb=$(p.p+"chips").querySelector('[data-ci="'+k+'"] .ct');if(cb)cb.textContent=r.name||("幹線"+(k+1))};
+S.go=function(i,instant){var cs=cards();if(!cs.length)return;i=Math.max(0,Math.min(cs.length-1,i));S.set(i);
+$(p.box).scrollTo({left:cs[i].offsetLeft,behavior:(instant||rm())?"auto":"smooth"});
+if($(p.p+"nav").getBoundingClientRect().top<0)revealTop($(p.p+"nav"))};
+S.reset=function(){S.i=0;$(p.box).scrollLeft=0;S.set(0)};
+$(p.box).addEventListener("scroll",function(){if(scT)return;scT=requestAnimationFrame(function(){scT=0;var el=$(p.box),cs=cards(),best=0,bd=1e9;for(var k=0;k<cs.length;k++){var d=Math.abs(cs[k].offsetLeft-el.scrollLeft);if(d<bd){bd=d;best=k}}if(best!==S.i)S.set(best)})},{passive:true});
+$(p.p+"chips").addEventListener("click",function(e){var b=e.target.closest("[data-ci]");if(b)S.go(+b.getAttribute("data-ci"))});
+$(p.p+"Prev").addEventListener("click",function(){S.go(S.i-1)});
+$(p.p+"Next").addEventListener("click",function(){S.go(S.i+1)});
+return S}
+var LS=Strip({box:"rows",p:"r",list:function(){return rows}}),HS=Strip({box:"hrows",p:"hr",list:function(){return rowsH}});
+function mark(){$("rt").classList.add("stale");$("pv").classList.add("stale");$("stale").hidden=false}
+function snap(){return {mat:MAT,alr:$("alr").value,cus:CUS,rows:rows,rowsH:rowsH,nextId:nextId,pj:PJ}}
+function save(){siteTouch()}
+function rd(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+function isSample(o){return o&&/^例\) [PL]-1幹線$/.test(o.name||"")}
+function load(src){
+if(src&&Array.isArray(src.rowsH)&&src.rowsH.length)rowsH=src.rowsH.map(function(o){var r=hNorm(o);if(o.id!=null)r.id=o.id;if(+r.id>=nextId)nextId=+r.id+1;return r});
+if(src){
+if(src.cus&&src.cus.other)CUS={other:src.cus.other};
+if(src.alr)$("alr").value=src.alr;
+if(src.pj)for(var k in PJ){if(src.pj[k]!=null)PJ[k]=src.pj[k]}
+if(/^例\)/.test(PJ.name||""))PJ.name="";
+setMat(src.mat==="al"?"al":"cu",true)}
+if(src&&Array.isArray(src.rows)&&src.rows.length){
+nextId=+src.nextId>0?+src.nextId:1;
+rows=src.rows.filter(function(o){return !isSample(o)}).map(function(o){var r=normRow(o);if(o.id!=null)r.id=o.id;return r});
+if(!rows.length)rows=[defRow()];
+rows.forEach(function(r){if(+r.id>=nextId)nextId=+r.id+1});rowsH.forEach(function(r){if(+r.id>=nextId)nextId=+r.id+1});
+return}
+rows=[defRow()]}
+function setMat(m,quiet){MAT=m;$("mCu").setAttribute("aria-pressed",m==="cu");$("mAl").setAttribute("aria-pressed",m==="al");$("alwrap").hidden=m!=="al";if(!quiet){mark();save()}}
+function syncPJ(){$("pjName").value=PJ.name;$("pjDate").value=PJ.date||"";$("pjCo").value=PJ.co||"";$("pjBy").value=PJ.by;$("pjSup").value=PJ.sup;$("ppr").value=PJ.ppr;$("pera").value=PJ.era;$("pbr").checked=!!PJ.br;$("hIs").value=PJ.hIs||"";$("hT").value=PJ.hT||"";$("hHz").value=PJ.hHz||"50";$("hTg").value=PJ.hTg||""}
+
+function onField(e){
+var t=e.target,mi=t.getAttribute&&t.getAttribute("data-mi");
+var mn=t.getAttribute&&t.getAttribute("data-mn");
+if(mn!=null){var c1=t.closest(".rc"),r1=rowById(c1.getAttribute("data-id"));if(!r1)return;if(!r1.mn)r1.mn=[];r1.mn[+mn]=t.value;save();return}
+if(mi!=null&&t.tagName==="INPUT"){var c0=t.closest(".rc"),r0=rowById(c0.getAttribute("data-id"));if(!r0)return;r0.ms[+mi]=t.value;c0.querySelector(".msum").textContent=fmtKw(mSum(r0))+" kW";mark();save();return}
+var lk=t.getAttribute&&t.getAttribute("data-lk"),ln=t.getAttribute&&t.getAttribute("data-ln");
+if(lk!=null||ln!=null){var c2=t.closest(".rc"),r2=rowById(c2.getAttribute("data-id"));if(!r2)return;var x=r2.ls[+(lk!=null?lk:ln)];if(!x)return;if(lk!=null)x.k=t.value;else x.n=t.value;
+c2.querySelector(".lcsum").textContent=lcSumText(r2);var s2=lcSum(r2),di=c2.querySelector('[data-f="ldm"]');if(di)di.placeholder=s2.auto!=null?"自動 "+s2.auto.toFixed(2):"自動";refreshRow(c2,r2);mark();save();return}
+var f=t.getAttribute&&t.getAttribute("data-f");if(!f)return;
+var card=t.closest(".rc"),r=rowById(card.getAttribute("data-id"));if(!r)return;
+r[f]=t.type==="checkbox"?t.checked:t.value;
+if(f==="name")LS.name(r);
+if(f==="m"&&e.type==="change"){r.v=DV[r.m];card.querySelector('[data-f="v"]').value=r.v}
+refreshRow(card,r);
+/* ケーブル種別を変えたときは、カードを作り直さずに電線サイズの候補だけ入れ替える(スマホでプルダウンが開き直したり画面が跳んだりしないように) */
+if(f==="ct"){if(sizesFor({ct:r.ct}).indexOf(String(r.size))<0)r.size="";var ss=card.querySelector('[data-f="size"]');ss.innerHTML=szOpts(r.ct).map(function(o){return '<option value="'+o[0]+'"'+(String(r.size)===String(o[0])?' selected':'')+'>'+o[1]+'</option>'}).join("");ss.value=r.size;updateCus()}
+mark();save()}
+$("rows").addEventListener("input",onField);
+$("rows").addEventListener("change",onField);
+$("rows").addEventListener("click",function(e){
+var b=e.target.closest("button[data-act]");if(!b)return;
+var card=b.closest(".rc"),r=rowById(card.getAttribute("data-id")),i=rows.indexOf(r);
+var act=b.getAttribute("data-act");
+if(act==="tog"||act==="open"){setCl(card,r,act==="open"?false:!r.cl);save();if(r.cl)afterClose(card);else revealTop(card);return}
+if(act==="ladd"||act==="ldel"){if(act==="ladd")r.ls.push({k:"",n:""});else{r.ls.splice(+b.getAttribute("data-li"),1);if(!r.ls.length)r.ls=[{k:"",n:""}]}
+card.querySelector(".lcw").innerHTML=lcHTML(r);if(act==="ladd"){var ks=card.querySelectorAll(".lcw select[data-lk]");ks[ks.length-1].focus()}refreshRow(card,r);mark();save();return}
+if(act==="madd"||act==="mdel"){
+if(!r.mn)r.mn=r.ms.map(function(){return ""});
+if(act==="madd"){r.ms.push("");r.mn.push("")}else{var di=+b.getAttribute("data-mi");r.ms.splice(di,1);r.mn.splice(di,1);if(!r.ms.length){r.ms=[""];r.mn=[""]}}
+card.querySelector(".mrow").innerHTML=motorsHTML(r);
+if(act==="madd"){var ins=card.querySelectorAll(".mrow input[data-mi]");ins[ins.length-1].focus()}
+mark();save();return}
+if(act==="dup"){var c=normRow(r);c.id=nextId++;c.name=(r.name||"幹線"+(i+1))+"(複製)";c.cl=false;rows.splice(i+1,0,c);renderRows();mark();save();LS.go(i+1);return}
+if(act==="del"){rows.splice(i,1);if(!rows.length)rows.push(defRow());renderRows();mark();save();LS.go(Math.min(i,rows.length-1),true)}});
+$("add").addEventListener("click",function(){rows.push(defRow());renderRows();mark();save();LS.go(rows.length-1)});
+function setCl(card,r,v){r.cl=v;card.classList.toggle("cl",v);var t=card.querySelector('[data-act="tog"]');t.setAttribute("aria-label",v?"ひらく":"たたむ");t.setAttribute("aria-expanded",String(!v))}
+function eachCard(fn){Array.prototype.forEach.call($("rows").querySelectorAll(".rc"),function(c){fn(c,rowById(c.getAttribute("data-id")))})}
+document.addEventListener("toggle",function(e){var d=e.target;if(d&&d.tagName==="DETAILS"&&d.open)revealTop(d)},true);
+$("go").addEventListener("click",function(){runCalc();$("rt").scrollIntoView({block:"start"})});
+$("mCu").addEventListener("click",function(){setMat("cu")});
+$("mAl").addEventListener("click",function(){setMat("al")});
+$("alr").addEventListener("input",function(){mark();save()});
+[["pjName","name"],["pjDate","date"],["pjCo","co"],["pjBy","by"]].forEach(function(p){$(p[0]).addEventListener("input",function(){PJ[p[1]]=$(p[0]).value;save();renderPreview()})});
+$("pjSup").addEventListener("change",function(){PJ.sup=$("pjSup").value;save();runCalc()});
+$("ppr").addEventListener("change",function(){PJ.ppr=$("ppr").value;save();renderPreview()});
+$("pera").addEventListener("change",function(){PJ.era=$("pera").value;save();renderPreview()});
+$("pbr").addEventListener("change",function(){PJ.br=$("pbr").checked;save();renderPreview()});
+$("pdf").addEventListener("click",makePdf);
+/* ===================== 高圧(6.6kV) ===================== */
+var HV_V=6600,HV_K=134;
+/* 6600V CVT。許容電流: [気中・暗きょ(40℃), 管路1孔1条(25℃), 直接埋設(25℃)]。R・X: 90℃ 交流導体実効抵抗・リアクタンス Ω/km */
+var HCAB={"CVT":{sz:["14","22","38","60","100","150","200","250","325","400"],
+amp:[[95,120,170,225,310,405,485,560,660,750],[null,100,140,180,240,305,360,405,null,null],[null,135,180,235,310,390,450,510,null,null]],
+tb:[40,25,25],tc:90,
+r50:[1.67,1.06,0.613,0.389,0.234,0.156,0.118,0.0953,0.0738,0.0606],x50:[0.203,0.194,0.182,0.173,0.164,0.159,0.157,0.154,0.151,0.149],
+r60:[1.67,1.06,0.614,0.389,0.234,0.156,0.118,0.0957,0.0744,0.0613],x60:[0.244,0.232,0.219,0.207,0.197,0.191,0.188,0.185,0.181,0.178]}};
+var HCT_OPTS=[["CVT","6600V CVT"]];
+var HINS_OPTS=[["0","気中・暗きょ"],["1","管路(1孔1条)"],["2","直接埋設"]];
+var HINSS={"0":"気中","1":"管路","2":"直埋"};
+var HDEV_OPTS=[["","なし(記載しない)"],["VCB","VCB(真空遮断器)"],["PAS","PAS(区分開閉器)"],["LBS","LBS(PF付)"],["PF","PF(限流ヒューズ)"]];
+var HU_OPTS=[["kVA","容量 kVA"],["kW","電力 kW"],["A","電流 A"]];
+var HPH={x:"例: 500",l:"例: 50",dm:"空欄で1",pf:"空欄で0.85",ht:"空欄で共通の目標",c:"空欄で1",dvA:"例: 600",dvK:"例: 12.5",ts:"空欄で共通の値",isk:"空欄で受電点の値"};
+function hDefRow(){return {id:nextId++,name:"",load:"",u:"kVA",x:"",dm:"",pf:"",l:"",ht:"",ct:"CVT",ins:"0",par:"1",tmp:"",c:"",size:"",dev:"",dvA:"",dvK:"",ts:"",isk:"",memo:"",cl:false}}
+function hNorm(o){var r=hDefRow();for(var k in o){if(Object.prototype.hasOwnProperty.call(r,k))r[k]=o[k]}if(!HCAB[r.ct])r.ct="CVT";r.ins=String(r.ins);if(["0","1","2"].indexOf(r.ins)<0)r.ins="0";return r}
+function hById(id){for(var i=0;i<rowsH.length;i++){if(String(rowsH[i].id)===String(id))return rowsH[i]}return null}
+function numOr(v,d){return isNum(v)&&+v>0?+v:d}
+function hTmpF(r){if(r.tmp==="")return 1;var T=HCAB[r.ct],th=+r.tmp,tb=T.tb[+r.ins];if(th>=T.tc)return 0;return Math.round(Math.sqrt((T.tc-th)/(T.tc-tb))*100)/100}
+function hAmp(r,i){var T=HCAB[r.ct],b=T.amp[+r.ins][i];if(b==null)return null;return Math.floor(b*hTmpF(r)*numOr(r.c,1)+0.2)*(+r.par||1)}
+function hCalc(r){
+var o={r:r,warn:[],notes:[]},T=HCAB[r.ct],par=+r.par||1,hz=PJ.hHz==="60"?"60":"50";
+if(!isNum(r.x)||!isNum(r.l)||+r.l<0){o.err="負荷とこう長を入れてください";return o}
+var dm=pct(numOr(r.dm,1)),pf=numOr(r.pf,0.85);if(pf>1)pf=1;
+o.dm=dm;o.pf=pf;var sn=Math.sqrt(Math.max(0,1-pf*pf));
+o.I=r.u==="A"?+r.x*dm:(r.u==="kW"?+r.x*dm*1000/(Math.sqrt(3)*HV_V*pf):+r.x*dm*1000/(Math.sqrt(3)*HV_V));
+o.T=isNum(r.ht)&&+r.ht>0?+r.ht:numOr(PJ.hTg,2);o.tAuto=!(isNum(r.ht)&&+r.ht>0);
+o.Is=numOr(r.isk,numOr(PJ.hIs,12.5));o.t=numOr(r.ts,numOr(PJ.hT,0.3));
+o.Amin=o.Is*1000*Math.sqrt(o.t)/HV_K;
+var L=+r.l/1000,R=T["r"+hz],X=T["x"+hz];
+function vd(i){return Math.sqrt(3)*o.I*L*(R[i]*pf+X[i]*sn)/par}
+var n=T.sz.length,iA=-1,iV=-1,iT=-1;
+for(var i=0;i<n;i++){var a=hAmp(r,i);if(iA<0&&a!=null&&a>=o.I-1e-9)iA=i;if(iV<0&&vd(i)/HV_V*100<=o.T+1e-9)iV=i;if(iT<0&&+T.sz[i]>=o.Amin-1e-9)iT=i}
+o.recA=iA>=0?T.sz[iA]:null;o.recV=iV>=0?T.sz[iV]:null;o.recT=iT>=0?T.sz[iT]:null;
+var idx;
+if(r.size!==""&&T.sz.indexOf(String(r.size))>=0){idx=T.sz.indexOf(String(r.size));o.fixed=true}
+else{if(iA<0||iV<0||iT<0){o.err=iA<0?"表の最大サイズでも許容電流が足りません(並列条数を増やしてください)":(iV<0?"最大サイズでも電圧降下が目標を超えます":"熱的強度を満たすサイズが表にありません");return o}idx=Math.max(iA,iV,iT)}
+o.size=T.sz[idx];o.R=R[idx];o.X=X[idx];
+o.e=vd(idx);o.ep=o.e/HV_V*100;o.dropOK=o.ep<=o.T+1e-9;
+o.amp=hAmp(r,idx);o.ampOK=o.amp!=null&&o.amp>=o.I-1e-9;
+o.thOK=+o.size>=o.Amin-1e-9;
+var Zs=HV_V/(Math.sqrt(3)*o.Is*1000),Rc=R[idx]*L/par,Xc=X[idx]*L/par;
+o.IsEnd=HV_V/(Math.sqrt(3)*Math.sqrt(Rc*Rc+(Zs+Xc)*(Zs+Xc)))/1000;
+if(!o.ampOK)o.warn.push(o.amp==null?"この敷設方法の許容電流が表にありません":"許容電流が負荷電流に足りません");
+if(!o.dropOK)o.warn.push("電圧降下が目標を超えています");
+if(!o.thOK)o.warn.push("短絡時の熱的強度が足りません(必要"+o.Amin.toFixed(1)+"mm²)");
+o.devOK=null;
+if(r.dev){var okA=isNum(r.dvA)?+r.dvA>=o.I-1e-9:null,okK=isNum(r.dvK)?+r.dvK>=o.Is-1e-9:null;
+if(okA===false)o.warn.push(r.dev+"の定格電流が負荷電流より小さい");
+if(okK===false)o.warn.push(r.dev+"の"+(r.dev==="PAS"||r.dev==="LBS"?"短時間耐電流":"定格遮断電流")+"が短絡電流より小さい");
+if(okA==null||okK==null)o.notes.push(r.dev+"の定格を入れると判定します");
+o.devOK=!(okA===false||okK===false)}
+o.ok=o.ampOK&&o.dropOK&&o.thOK&&o.devOK!==false;
+return o}
+function hCableName(r,s){var p=+r.par||1;return "6600V CVT "+s+"sq"+(p>1?" ×"+p:"")}
+function hDevText(r){if(!r.dev)return "";return r.dev+(isNum(r.dvA)?" "+r.dvA+"A":"")+(isNum(r.dvK)?" "+r.dvK+"kA":"")}
+function hRunCalc(){
+var os=rowsH.map(hCalc);LASTHOS=os;
+var HT2=["負荷電流(A)","ケーブル","許容電流(A)","降下(V)","降下(%)","目標(%)","短絡(kA)","熱的必要(mm²)","保護機器","判定"];
+var h='<table><thead><tr><th class="c1">回路</th>'+HT2.map(function(x){return '<th>'+x+'</th>'}).join("")+'<th style="text-align:left">メモ</th></tr></thead><tbody>';
+os.forEach(function(o,i){var r=o.r,nm=(i+1)+". "+(r.name||"回路"+(i+1))+(r.load?" → "+r.load:"");
+h+='<tr><td class="c1">'+esc(nm)+'</td>';
+if(o.err&&!o.size){h+='<td>'+(o.I!=null?f1(o.I):"-")+'</td><td>-</td><td>-</td><td>-</td><td>-</td><td>'+(o.T||"-")+'</td><td>'+(o.Is?o.Is:"-")+'</td><td>'+(o.Amin?f1(o.Amin):"-")+'</td><td>'+esc(hDevText(r)||"-")+'</td><td><span class="badge ng">要確認</span></td>'}
+else{h+='<td>'+f1(o.I)+'</td><td><b>'+esc(hCableName(r,o.size))+'</b> <span class="sub">'+HINSS[r.ins]+'</span></td><td'+(o.ampOK?'':' class="ng"')+'>'+(o.amp!=null?o.amp:"-")+'</td><td'+(o.dropOK?'':' class="ng"')+'>'+f2(o.e)+'</td><td'+(o.dropOK?'':' class="ng"')+'>'+f2(o.ep)+'</td><td>'+o.T+(o.tAuto?' <span class="sub">共通</span>':'')+'</td><td>'+o.Is+' <span class="sub">→末端'+o.IsEnd.toFixed(1)+'</span></td><td'+(o.thOK?'':' class="ng"')+'>'+f1(o.Amin)+' <span class="sub">'+o.t+'秒</span></td><td'+(o.devOK===false?' class="ng"':'')+'>'+esc(hDevText(r)||"-")+'</td><td>'+badge(o.ok)+'</td>'}
+var mt=[];if(o.err)mt.push(o.err);mt=mt.concat(o.warn,o.notes);
+h+='<td class="memo">'+esc(mt.join(" / "))+'</td></tr>'});
+h+='</tbody></table>';
+$("hrt").innerHTML=h;$("hrt").classList.remove("stale");$("hpv").classList.remove("stale");$("hstale").hidden=true;
+hEach(function(c,r){if(r)c.querySelector(".sum").innerHTML=hSumHTML(r)});
+if(MODE==="hv")renderPreview()}
+function hCols(){return [["No.",2.6],["幹線番号",7],["負荷名称",8],["こう長<br>L[m]",4.2],["負荷容量<br>(×需要率)",7.5],["力率<br>cosθ",4],["負荷電流<br>I[A]",5],["ケーブル<br>種別・太さ",9.5],["敷設",4.5],["許容電流<br>[A]",5],["R / X<br>[Ω/km]",6],["電圧降下<br>e[V]<br>[%]",5.4],["目標<br>[%]",3.6],["短絡電流<br>[kA]<br>遮断時間[s]",6],["熱的必要<br>断面積<br>[mm²]",5.4],["保護機器<br>定格[A]<br>遮断[kA]",7.5],["判定",3.6],["備考",10]]}
+function hSheetRow(o,i){var r=o.r,bad=!o.size||o.err,t=[];
+t.push(['',i+1]);t.push(['l',esc(r.name)]);t.push(['l',esc(r.load)]);t.push(['n',isNum(r.l)?esc(r.l):"-"]);
+t.push(['n',isNum(r.x)?esc(r.x+" "+r.u+(o.dm&&o.dm!==1?" ×"+o.dm:"")):"-"]);
+t.push(['n',o.pf?o.pf.toFixed(2):"-"]);
+t.push(['n',o.I!=null&&isFinite(o.I)?f1(o.I):"-"]);
+t.push(['',bad?"-":esc(hCableName(r,o.size))]);
+t.push(['',HINSS[r.ins]+(r.tmp!==""?'<span class="s2">'+r.tmp+'℃</span>':'')]);
+t.push([o.ampOK===false?'ngc':'n',bad?"-":(o.amp!=null?o.amp:"-")]);
+t.push(['n',bad?"-":o.R+'<span class="s2">'+o.X+'</span>']);
+t.push([o.dropOK===false?'ngc':'n',bad?"-":f2(o.e)+'<span class="s2">'+f2(o.ep)+'%</span>']);
+t.push(['',o.T?o.T:"-"]);
+t.push(['n',o.Is?o.Is+'<span class="s2">'+o.t+'</span>':"-"]);
+t.push([o.thOK===false?'ngc':'n',o.Amin?f1(o.Amin):"-"]);
+t.push([o.devOK===false?'ngc':'',r.dev?esc(r.dev)+'<span class="s2">'+(isNum(r.dvA)?esc(r.dvA)+"A":"-")+" / "+(isNum(r.dvK)?esc(r.dvK)+"kA":"-")+'</span>':"-"]);
+t.push([o.ok?'':'ngc',o.err?"要確認":(o.ok?"OK":"NG")]);
+t.push(['l',esc(r.memo||"")]);
+return '<tr>'+t.map(function(c){return '<td'+(c[0]?' class="'+c[0]+'"':'')+'>'+c[1]+'</td>'}).join("")+'</tr>'}
+function hSheetShell(pg){
+var c=hCols(),P=PAPER[PJ.ppr],hz=PJ.hHz==="60"?"60":"50";
+var d=document.createElement("div");d.className="sheet";d.style.width=P.w+"px";d.style.height=P.h+"px";
+d.innerHTML='<div class="sh"><div class="l">件名<br><b>'+esc(PJ.name||"")+'</b></div><div class="t">高圧幹線計算書</div><div class="r">'+esc(dateText())+(PJ.co?'<br>'+esc(PJ.co):'')+(PJ.by?'<br>担当 '+esc(PJ.by):'')+'</div></div>'+
+'<div class="cond">計算方法: インピーダンス法 / 公称電圧 6,600V 三相3線式 / 周波数 '+hz+'Hz / 受電点短絡電流 '+numOr(PJ.hIs,12.5)+'kA / 遮断時間 '+numOr(PJ.hT,0.3)+'秒(個別指定を除く)</div>'+
+'<div class="tb"><table><colgroup>'+c.map(function(x){return '<col style="width:'+x[1]+'%">'}).join("")+'</colgroup><thead><tr>'+c.map(function(x){return '<th>'+x[0]+'</th>'}).join("")+'</tr></thead><tbody></tbody></table></div>'+
+'<div class="ft"><div><p>○負荷電流 I = S / (√3・V)[A](kWは力率で除す)。電圧降下 e = √3・I・L・(R cosθ + X sinθ)[V]、L: こう長[km]、R・X: 導体温度90℃の交流導体実効抵抗・リアクタンス[Ω/km](並列は÷条数)</p><p>○R・X: 矢崎エナジーシステム「常数篇」6kV-CV 3心CVT('+hz+'Hz)。許容電流: 6600V CVT 1回線、気中・暗きょ 周囲温度40℃、管路(1孔1条)・直接埋設 基底温度25℃、導体最高許容温度90℃(周囲温度補正 √((90−θ)/(90−θ0)))</p></div>'+
+'<div><p>○短絡時の熱的強度: A ≧ I・√t / K [mm²]、I: 短絡電流[A]、t: 遮断時間[s]、K = 134(架橋ポリエチレン・銅、90℃→230℃)</p><p>○保護機器: 定格電流 ≧ 負荷電流、定格遮断電流(PAS・LBSは短時間耐電流) ≧ 短絡電流。電圧降下は設計目標値で判定</p></div></div>'+
+'<div class="pg">'+pg+'</div>';
+return d}
+function hFin(l,f,v,cls,type){return '<div class="f'+(cls?' '+cls:'')+'"><label>'+l+'</label><input data-f="'+f+'" type="'+(type||"number")+'"'+(type?'':' inputmode="decimal"')+' placeholder="'+(HPH[f]||'')+'" value="'+esc(v)+'"></div>'}
+function hSumHTML(r){var a=[];if(r.load)a.push(esc(r.load));if(isNum(r.l))a.push(esc(r.l)+"m");if(isNum(r.x))a.push(esc(r.x)+" "+r.u);
+var o=null;for(var i=0;i<LASTHOS.length;i++){if(LASTHOS[i].r===r)o=LASTHOS[i]}
+var res="";if(o&&o.size&&!o.err)res=' → <b>'+esc(hCableName(r,o.size))+'</b> <span class="'+(o.ok?'ok':'ng')+'">'+(o.ok?'OK':'NG')+'</span>';else if(o&&o.err)res=' → <span class="ng">要確認</span>';
+return (a.length?a.join(" / "):"未入力")+res}
+function hRowHTML(r,pos){return '<article class="rc'+(r.cl?' cl':'')+'" data-id="'+r.id+'">'+
+'<div class="rh"><span class="rn">'+pos+'</span><input data-f="name" value="'+esc(r.name)+'" placeholder="幹線番号" aria-label="幹線番号"><button type="button" class="mini" data-act="dup">複製</button><button type="button" class="mini" data-act="del">削除</button><button type="button" class="mini tg" data-act="tog" aria-expanded="'+(!r.cl)+'" aria-label="'+(r.cl?'ひらく':'たたむ')+'">'+CHEV+'</button></div>'+
+'<button type="button" class="sum" data-act="open"></button><div class="cbody">'+
+'<div class="g2" style="grid-template-columns:1fr">'+hFin('負荷名称','load',r.load,'','text')+'</div>'+
+'<div class="sec"><h3>負荷</h3><div class="g3 keep">'+fsel('単位','u',HU_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="'+HPH.x+'" value="'+esc(r.x)+'"></div>'+hFin('需要率','dm',r.dm)+'</div>'+
+'<div class="g3 keep"><div></div>'+hFin('力率(cosθ)','pf',r.pf)+'</div></div>'+
+'<div class="sec"><h3>幹線</h3><div class="g3">'+fsel('ケーブルの種別','ct',HCT_OPTS,r.ct)+fsel('敷設方法','ins',HINS_OPTS,r.ins)+fsel('並列条数','par',PAR_OPTS,r.par)+
+hFin('こう長(m)','l',r.l)+hFin('電圧降下の目標(%)','ht',r.ht)+fsel('ケーブルサイズ','size',[["","自動(最小サイズ)"]].concat(HCAB[r.ct].sz.map(function(k){return [k,k+"sq"]})),r.size)+'</div>'+
+'<details><summary class="cs"></summary><div class="g3">'+fsel('周囲温度','tmp',TMP_OPTS,r.tmp)+hFin('その他の補正係数','c',r.c)+'</div></details></div>'+
+'<div class="sec"><h3>短絡・保護機器</h3><div class="g3">'+hFin('短絡電流(kA)','isk',r.isk)+hFin('遮断時間(秒)','ts',r.ts)+fsel('保護機器','dev',HDEV_OPTS,r.dev)+
+'<div class="f dvw"><label>定格電流(A)</label><input data-f="dvA" type="number" inputmode="decimal" placeholder="'+HPH.dvA+'" value="'+esc(r.dvA)+'"></div>'+
+'<div class="f dvw"><label class="dvkl">定格遮断電流(kA)</label><input data-f="dvK" type="number" inputmode="decimal" placeholder="'+HPH.dvK+'" value="'+esc(r.dvK)+'"></div></div></div>'+
+'<div class="sec"><h3>備考</h3><textarea data-f="memo" rows="2" class="memo" aria-label="備考(計算書に載ります)">'+esc(r.memo)+'</textarea></div>'+
+'</div></article>'}
+function hRefresh(card,r){
+var U={A:"電流(A)",kW:"電力(kW)",kVA:"容量(kVA)"};card.querySelector(".xl").textContent=U[r.u];
+Array.prototype.forEach.call(card.querySelectorAll(".dvw"),function(e){e.hidden=!r.dev});
+card.querySelector(".dvkl").textContent=(r.dev==="PAS"||r.dev==="LBS")?"短時間耐電流(kA)":"定格遮断電流(kA)";
+var cp=[];if(r.tmp!=="")cp.push("周囲"+r.tmp+"℃");if(isNum(r.c)&&+r.c!==1)cp.push("係数×"+r.c);
+card.querySelector(".cs").textContent="補正(周囲温度): "+(cp.length?cp.join(" / "):"なし");
+card.querySelector(".sum").innerHTML=hSumHTML(r)}
+function hEach(fn){Array.prototype.forEach.call($("hrows").querySelectorAll(".rc"),function(c){fn(c,hById(c.getAttribute("data-id")))})}
+function hRender(){$("hrows").innerHTML=rowsH.map(function(r,i){return hRowHTML(r,i+1)}).join("");hEach(function(c,r){hRefresh(c,r)});HS.chips()}
+function hMark(){$("hrt").classList.add("stale");$("hpv").classList.add("stale");$("hstale").hidden=false}
+function hOnField(e){var t=e.target,f=t.getAttribute&&t.getAttribute("data-f");if(!f)return;var card=t.closest(".rc"),r=hById(card.getAttribute("data-id"));if(!r)return;r[f]=t.value;if(f==="name")HS.name(r);hRefresh(card,r);hMark();save()}
+$("hrows").addEventListener("input",hOnField);$("hrows").addEventListener("change",hOnField);
+$("hrows").addEventListener("click",function(e){var b=e.target.closest("button[data-act]");if(!b)return;
+var card=b.closest(".rc"),r=hById(card.getAttribute("data-id")),i=rowsH.indexOf(r),act=b.getAttribute("data-act");
+if(act==="tog"||act==="open"){var v=act==="open"?false:!r.cl;r.cl=v;card.classList.toggle("cl",v);b=card.querySelector('[data-act="tog"]');b.setAttribute("aria-label",v?"ひらく":"たたむ");b.setAttribute("aria-expanded",String(!v));save();if(v)afterClose(card);else revealTop(card);return}
+if(act==="dup"){var c=hNorm(r);c.id=nextId++;c.name=(r.name||"幹線"+(i+1))+"(複製)";c.cl=false;rowsH.splice(i+1,0,c);hRender();hMark();save();HS.go(i+1);return}
+if(act==="del"){rowsH.splice(i,1);if(!rowsH.length)rowsH.push(hDefRow());hRender();hMark();save();HS.go(Math.min(i,rowsH.length-1),true)}});
+$("hadd").addEventListener("click",function(){rowsH.push(hDefRow());hRender();hMark();save();HS.go(rowsH.length-1)});
+$("hgo").addEventListener("click",function(){hRunCalc();$("hrt").scrollIntoView({block:"start"})});
+[["hIs","hIs"],["hT","hT"],["hTg","hTg"]].forEach(function(p){$(p[0]).addEventListener("input",function(){PJ[p[1]]=$(p[0]).value;save();hMark()})});
+$("hHz").addEventListener("change",function(){PJ.hHz=$("hHz").value;save();hRunCalc()});
+function setMode(m,quiet){MODE=m;PJ.mode=m;$("lvView").hidden=m!=="lv";$("hvView").hidden=m!=="hv";$("tabLv").setAttribute("aria-selected",String(m==="lv"));(m==="hv"?HS:LS).set((m==="hv"?HS:LS).i);$("tabHv").setAttribute("aria-selected",String(m==="hv"));if(!quiet)save();renderPreview()}
+$("tabLv").addEventListener("click",function(){setMode("lv")});
+$("tabHv").addEventListener("click",function(){setMode("hv")});
+
+$("hpdf").addEventListener("click",makePdf);
+$("copy").addEventListener("click",function(){
+var t=LASTTSV;
+function fb(){var ta=$("tsv");ta.hidden=false;ta.value=t;ta.focus();ta.select();$("cmsg").textContent="自動でコピーできませんでした。選択された文字をコピーしてください。"}
+try{navigator.clipboard.writeText(t).then(function(){$("tsv").hidden=true;$("cmsg").textContent="コピーしました。Excelやスプレッドシートに貼り付けられます。"},fb)}catch(e){fb()}});
+
+(function(){var g=$("cgrid");
+S.forEach(function(s){var d=document.createElement("div"),l=document.createElement("label"),n=document.createElement("input");l.textContent=s+" mm²(A)";n.type="number";n.inputMode="decimal";n.id="cus"+String(s).replace(".","_");l.htmlFor=n.id;n.setAttribute("data-s",s);d.className="f";d.appendChild(l);d.appendChild(n);g.appendChild(d)});
+g.addEventListener("input",function(e){var s=e.target.getAttribute("data-s");if(!s)return;var v=+e.target.value;CUS.other[s]=v>0?v:undefined;mark();save()});
+function fill(){var t=$("cty").value;Array.prototype.forEach.call(g.querySelectorAll("input"),function(n){var v=CUS.other[n.getAttribute("data-s")];n.value=v>0?v:""})}
+$("cty").addEventListener("change",fill);
+window.fillCus=fill})();
+
+/* ===================== 現場ごとの保存と切り替え ===================== */
+var SKEY="vd-sites-v1",CKEY="vd-sites-cur",SITES=[],CUR=null,COL=null,lsT=null,pushT={},dirty={},inflight={},firstSync=false;
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function newId(){return "s"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function fixName(x){if(x&&x.name==="無題の現場")x.name="無題";return x}
+function siteById(id){for(var i=0;i<SITES.length;i++)if(SITES[i].id===id)return SITES[i];return null}
+function siteName(d){var n=d&&d.pj&&String(d.pj.name||"").trim();return n||"無題"}
+function writeLocal(){clearTimeout(lsT);lsT=null;try{localStorage.setItem(SKEY,JSON.stringify({list:SITES}));localStorage.setItem(CKEY,CUR||"")}catch(e){}}
+function applyState(d){
+MAT="cu";rows=[];rowsH=[];nextId=1;CUS={other:{}};
+PJ={name:"",date:"",co:"",by:"",sup:"tr",ppr:"a4",era:"w",br:false,mode:"lv",hIs:"",hT:"",hHz:"50",hTg:""};
+$("alr").value="";LASTTSV="";$("tsv").hidden=true;$("cmsg").textContent="";$("pdfmsg").textContent="";
+load(d?clone(d):null);setMat(MAT,true);
+if(!rowsH.length)rowsH=[hDefRow()];syncPJ();renderRows();hRender();window.fillCus();runCalc();hRunCalc();setMode(PJ.mode==="hv"?"hv":"lv",true);LS.reset();HS.reset()}
+function siteTouch(){
+var s=siteById(CUR);if(!s)return;
+s.data=snap();s.name=siteName(s.data);s.updated=Date.now();delete s.fresh;
+clearTimeout(lsT);lsT=setTimeout(writeLocal,300);
+queuePush(s.id);renderSites()}
+function fmtWhen(t){if(!t)return "";var d=new Date(t),n=new Date(),p=function(x){return (x<10?"0":"")+x};
+var hm=p(d.getHours())+":"+p(d.getMinutes());
+if(d.toDateString()===n.toDateString())return "今日 "+hm;
+return (d.getFullYear()!==n.getFullYear()?d.getFullYear()+"/":"")+(d.getMonth()+1)+"/"+d.getDate()+" "+hm}
+var CONF=null;
+function renderSites(){
+var q=$("sQ").value.trim().toLowerCase(),list=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)});
+if(q)list=list.filter(function(s){return s.name.toLowerCase().indexOf(q)>=0});
+var cur=siteById(CUR);$("sCur").textContent=cur?cur.name:"現場一覧";
+if(!list.length){$("sList").innerHTML='<li><p class="sempty">'+(q?"見つかりません":"現場がありません")+"</p></li>";return}
+$("sList").innerHTML=list.map(function(s){
+var d=s.data||{},nl=(d.rows||[]).length,nh=(d.rowsH||[]).length,on=s.id===CUR;
+var acts="";
+if(on)acts=CONF===s.id?'<div class="sacts"><span class="q">この現場を削除？</span><button type="button" class="yes" data-sa="yes">削除する</button><button type="button" data-sa="no">やめる</button></div>'
+:'<div class="sacts"><button type="button" data-sa="dup">複製</button><button type="button" class="del" data-sa="del">削除</button></div>';
+return '<li class="'+(on?"on":"")+'" data-sid="'+esc(s.id)+'"><button type="button" class="si"'+(on?' aria-current="true"':"")+'><span class="nm">'+esc(s.name)+'</span><span class="mt">'+fmtWhen(s.updated)+" ・ 低圧"+nl+" 高圧"+nh+"</span></button>"+acts+"</li>"}).join("")}
+function openSite(id){
+var s=siteById(id);if(!s)return;
+if(CUR&&CUR!==id){var c=siteById(CUR);if(c){c.data=snap();c.name=siteName(c.data)}}
+CUR=id;CONF=null;applyState(s.data);writeLocal();renderSites();closeSide();window.scrollTo(0,0)}
+function addSite(data,name){var s={id:newId(),name:name||siteName(data),updated:Date.now(),data:data};SITES.push(s);queuePush(s.id);return s}
+function newSite(){
+var base={pj:{co:PJ.co||"",by:PJ.by||"",ppr:PJ.ppr,era:PJ.era,sup:PJ.sup}};
+var s=addSite(base,"無題");openSite(s.id);$("pjName").focus()}
+function dupSite(id){var s=siteById(id);if(!s)return;if(id===CUR)s.data=snap();var d=clone(s.data||{});d.pj=d.pj||{};d.pj.name=(/^無題/.test(s.name)?"":s.name)+"(複製)";var n=addSite(d);openSite(n.id)}
+function delSite(id){
+SITES=SITES.filter(function(s){return s.id!==id});clearTimeout(pushT[id]);delete dirty[id];
+if(COL){COL.doc(id).delete().catch(function(){})}
+CONF=null;
+if(id===CUR){CUR=null;var rest=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)});if(rest.length)openSite(rest[0].id);else{var s=addSite({},"無題");openSite(s.id)}}
+writeLocal();renderSites()}
+/* 一覧の操作 */
+$("sList").addEventListener("click",function(e){
+var li=e.target.closest("li[data-sid]");if(!li)return;var id=li.getAttribute("data-sid");
+var a=e.target.closest("[data-sa]");
+if(!a){if(id!==CUR)openSite(id);else closeSide();return}
+var k=a.getAttribute("data-sa");
+if(k==="dup")dupSite(id);else if(k==="del"){CONF=id;renderSites()}else if(k==="yes")delSite(id);else{CONF=null;renderSites()}});
+$("sNew").addEventListener("click",newSite);
+$("sQ").addEventListener("input",renderSites);
+function openSide(){$("side").classList.add("open");$("sOpen").setAttribute("aria-expanded","true")}
+function closeSide(){$("side").classList.remove("open");$("sOpen").setAttribute("aria-expanded","false")}
+$("sOpen").addEventListener("click",openSide);
+$("sClose").addEventListener("click",closeSide);
+document.addEventListener("click",function(e){if($("side").classList.contains("open")&&!e.target.closest("#side")&&!e.target.closest("#sOpen"))closeSide()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSide()});
+/* クラウド(どの端末からでも同じ現場が見える) */
+function setSync(k){var el=$("sSync");el.classList.toggle("ng",k==="err"||k==="full");
+el.textContent={local:"この端末に保存しています",ok:"クラウドに保存済み(ほかの端末でも開けます)",saving:"クラウドに保存中…",err:"クラウドに保存できませんでした。この端末には残っています",full:"保存先がいっぱいです。使わない現場を削除してください"}[k]||""}
+function queuePush(id){if(!COL)return;dirty[id]=1;clearTimeout(pushT[id]);pushT[id]=setTimeout(function(){doPush(id)},1500)}
+function doPush(id){
+if(!COL)return;if(inflight[id]){pushT[id]=setTimeout(function(){doPush(id)},800);return}
+var s=siteById(id);if(!s){delete dirty[id];return}
+var body=clone({name:s.name,updated:s.updated,data:s.data||{}});
+inflight[id]=1;setSync("saving");
+COL.doc(id).set(body).then(function(){inflight[id]=0;var t=siteById(id);if(!t||t.updated===body.updated)delete dirty[id];if(!Object.keys(dirty).length)setSync("ok")},
+function(e){inflight[id]=0;setSync(e&&e.code==="quota_exceeded"?"full":"err")})}
+function flushAll(){writeLocal();Object.keys(dirty).forEach(function(id){if(!inflight[id]){clearTimeout(pushT[id]);doPush(id)}})}
+window.addEventListener("pagehide",flushAll);
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")flushAll()});
+function onRemote(qs){
+var curChanged=false,listChanged=false;
+qs.docChanges().forEach(function(ch){
+var id=ch.doc.id,b=ch.doc.data()||{},l=siteById(id);
+if(ch.type==="removed"){if(l&&!dirty[id]){SITES=SITES.filter(function(s){return s.id!==id});listChanged=true;if(id===CUR)CUR=null}return}
+if(!l){SITES.push({id:id,name:(b.name==="無題の現場"?"":b.name)||siteName(b.data),updated:+b.updated||0,data:b.data||{}});listChanged=true;return}
+if((+b.updated||0)>(l.updated||0)&&!dirty[id]){l.data=b.data||{};l.name=b.name||siteName(l.data);l.updated=+b.updated;listChanged=true;if(id===CUR)curChanged=true}});
+if(!firstSync&&!qs.metadata.fromCache){firstSync=true;
+var have={};qs.docs.forEach(function(d){have[d.id]=1});
+if(qs.docs.length){SITES=SITES.filter(function(s){if(s.fresh&&!have[s.id]){if(s.id===CUR)CUR=null;listChanged=true;return false}return true})}
+SITES.forEach(function(s){if(!have[s.id])queuePush(s.id)});
+if(!Object.keys(dirty).length)setSync("ok")}
+if(!CUR){var rest=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)});if(rest.length)openSite(rest[0].id);else{var s=addSite({},"無題");openSite(s.id)}return}
+if(curChanged)applyState(siteById(CUR).data);
+if(listChanged||curChanged){writeLocal();renderSites()}}
+async function initCloud(){
+try{
+if(!window.claude||!window.claude.use)return;
+var u=await window.claude.use("user"),db=await window.claude.use("db");
+if(!u||!db)return;var uid=await u.id();if(!uid)return;
+COL=db.collection("data/users/"+uid);
+COL.onSnapshot(onRemote,function(){COL=null;setSync("local")})
+}catch(e){COL=null;setSync("local")}}
+/* 起動: 以前の1件分の保存があれば、最初の現場として引き継ぐ */
+(function(){
+var st=rd(SKEY);
+if(st&&Array.isArray(st.list)&&st.list.length)SITES=st.list.filter(function(s){return s&&s.id}).map(fixName);
+if(!SITES.length){var old=rd(KEY)||rd(OLDKEY);SITES=[{id:newId(),name:siteName(old),updated:Date.now(),data:old||{},fresh:!old}]}
+var c="";try{c=localStorage.getItem(CKEY)||""}catch(e){}
+if(!siteById(c))c=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)})[0].id;
+CUR=c;applyState(siteById(c).data);writeLocal();renderSites()})();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderPreview);
+
+/* ===================== ファイルの保存(PDF・バックアップ) ===================== */
+/* iPhoneなどタッチ端末は共有シート(「ファイルに保存」やLINEで送る)、パソコンは普通のダウンロード */
+function isTouch(){try{return matchMedia("(pointer:coarse)").matches}catch(e){return false}}
+function shareable(file){try{return !!(file&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(e){return false}}
+function downloadBlob(blob,fn){
+var u=URL.createObjectURL(blob),a=document.createElement("a");
+a.href=u;a.download=fn;a.rel="noopener";document.body.appendChild(a);a.click();a.remove();
+setTimeout(function(){URL.revokeObjectURL(u)},60000)}
+function shareFile(file,el){
+return navigator.share({files:[file],title:file.name}).then(function(){el.textContent="保存・共有しました: "+file.name},
+function(e){if(e&&e.name==="AbortError"){el.textContent="キャンセルしました。"}else{downloadBlob(file,file.name);el.textContent="ダウンロードしました: "+file.name}})}
+/* inGesture: ボタンを押した直後で、そのまま共有シートを開ける状態かどうか */
+function deliverFile(blob,fn,el,inGesture){
+var file=null;try{file=new File([blob],fn,{type:blob.type||"application/octet-stream"})}catch(e){}
+el.classList&&el.classList.remove("ng");
+if(isTouch()&&shareable(file)){
+if(inGesture){shareFile(file,el);return}
+/* PDFは作るのに時間がかかるので、もう一度タップしてもらってから共有シートを開く */
+el.innerHTML="";var w=document.createElement("span");w.className="savebar";
+var t=document.createElement("span");t.textContent="PDFができました。";
+var b=document.createElement("button");b.type="button";b.className="btn pri";b.textContent="保存・共有する";
+b.addEventListener("click",function(){shareFile(file,el)});
+w.appendChild(t);w.appendChild(b);el.appendChild(w);b.focus();return}
+downloadBlob(blob,fn);el.textContent="ダウンロードしました: "+fn}
+
+/* ===================== バックアップ(書き出し・読み込み) ===================== */
+function ymd(){var d=new Date(),p=function(x){return (x<10?"0":"")+x};return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())}
+function bkMsg(t,ng){var el=$("bkMsg");el.textContent=t;el.classList.toggle("ng",!!ng)}
+$("bkOut").addEventListener("click",function(){
+var c=siteById(CUR);if(c){c.data=snap();c.name=siteName(c.data)}
+var list=SITES.filter(function(s){return !s.fresh}).map(function(s){return {id:s.id,name:s.name,updated:s.updated,data:s.data||{}}});
+if(!list.length){bkMsg("書き出す現場がまだありません。",true);return}
+var body=JSON.stringify({app:"vd-calc",format:1,exported:Date.now(),list:list},null,1);
+deliverFile(new Blob([body],{type:"application/json"}),"電圧降下_現場データ_"+ymd()+".json",$("bkMsg"),true)});
+$("bkIn").addEventListener("click",function(){$("bkFile").value="";$("bkFile").click()});
+$("bkFile").addEventListener("change",function(){
+var inp=this,f=inp.files&&inp.files[0];if(!f)return;
+var rdr=new FileReader();
+rdr.onerror=function(){bkMsg("ファイルを読めませんでした。",true)};
+rdr.onload=function(){
+var o=null;try{o=JSON.parse(String(rdr.result||""))}catch(e){}
+var list=o&&Array.isArray(o.list)?o.list:null;
+if(!list){bkMsg("このアプリで書き出したファイルではないようです。",true);return}
+var c=siteById(CUR);if(c&&!c.fresh){c.data=snap();c.name=siteName(c.data)}
+var add=0,upd=0,same=0,curChanged=false;
+list.forEach(function(x){
+if(!x||typeof x.id!=="string"||!x.id||(x.data&&typeof x.data!=="object"))return;
+var d=clone(x.data||{}),u=+x.updated||Date.now(),l=siteById(x.id);
+if(!l){SITES.push(fixName({id:x.id,name:String(x.name||"")||siteName(d),updated:u,data:d}));add++;return}
+if(u>(l.updated||0)){l.data=d;l.name=String(x.name||"")||siteName(d);l.updated=u;delete l.fresh;upd++;if(l.id===CUR)curChanged=true}else same++});
+if(add){var f0=siteById(CUR);if(f0&&f0.fresh){SITES=SITES.filter(function(s){return s.id!==f0.id});CUR=null}}
+if(!add&&!upd){bkMsg(same?"新しいデータはありませんでした(この端末の方が新しいか同じです)。":"読み込める現場がありませんでした。",!same);return}
+if(!CUR){var r=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)});openSite(r[0].id);$("side").classList.add("open");$("sOpen").setAttribute("aria-expanded","true")}
+else if(curChanged){applyState(siteById(CUR).data)}
+writeLocal();renderSites();
+bkMsg((add?add+"件の現場を追加":"")+(add&&upd?"、":"")+(upd?upd+"件を新しい内容に更新":"")+"しました。"+(same?"(この端末の方が新しい"+same+"件はそのまま)":""))};
+rdr.readAsText(f);inp.value=""});
+
+/* ===================== ホーム画面アプリ・オフライン対応 ===================== */
+(function(){
+var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+var standalone=navigator.standalone===true;try{standalone=standalone||matchMedia("(display-mode: standalone)").matches}catch(e){}
+if(ios&&!standalone)$("sHint").hidden=false;
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")){
+window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}})();
+</script>
+
+</body></html>
