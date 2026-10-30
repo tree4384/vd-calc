@@ -145,6 +145,7 @@ textarea.memo{display:block;min-height:3.6em;margin-top:8px;font-size:.95rem;res
 textarea{width:100%;min-height:6em;font:inherit;font-size:.8rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px}
 .pvbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px}
 .pvbar .f{width:auto}
+.pvbtns{display:flex;flex-wrap:wrap;gap:10px}
 .desk{background:var(--desk);border-radius:10px;padding:14px;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:14px}
 .pgbox{position:relative;box-shadow:0 1px 3px rgba(0,0,0,.25);flex:none}
 .pgbox>.sheet{position:absolute;left:0;top:0;transform-origin:0 0}
@@ -292,10 +293,10 @@ body{padding-left:calc(276px + 20px)}
 </section>
 
 <section class="card">
-<h2>幹線計算書(PDF)</h2>
+<h2>幹線計算書(PDF・Excel)</h2>
 <div class="pvbar">
 <label class="chk"><input type="checkbox" id="pbr"> 分岐選定の列を入れる</label>
-<button type="button" class="btn pri" id="pdf">PDFを保存</button>
+<span class="pvbtns"><button type="button" class="btn pri" id="pdf">PDFを保存</button><button type="button" class="btn" id="xlsx">Excelで保存</button></span>
 </div>
 <p class="note" id="pdfmsg"></p>
 <div class="desk" id="pv"></div>
@@ -337,8 +338,8 @@ body{padding-left:calc(276px + 20px)}
 <div class="tw" id="hrt"></div>
 </section>
 <section class="card">
-<h2>高圧幹線計算書(PDF)</h2>
-<div class="pvbar"><button type="button" class="btn pri" id="hpdf">PDFを保存</button></div>
+<h2>高圧幹線計算書(PDF・Excel)</h2>
+<div class="pvbar"><button type="button" class="btn pri" id="hpdf">PDFを保存</button><button type="button" class="btn" id="hxlsx">Excelで保存</button></div>
 <p class="note" id="hpdfmsg"></p>
 <div class="desk" id="hpv"></div>
 </section>
@@ -1105,6 +1106,161 @@ if(!siteById(c))c=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.upda
 CUR=c;applyState(siteById(c).data);writeLocal();renderSites()})();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderPreview);
 
+/* ===================== Excel(.xlsx)書き出し =====================
+   計算書(PDFと同じ紙面)の内容を、そのままExcelの表にする。外部の部品は使わないので電波がなくても動く。 */
+var XL=(function(){
+var enc=new TextEncoder();
+var CRC=(function(){var t=new Uint32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){var c=0xFFFFFFFF;for(var i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+/* 無圧縮のzip(xlsxの入れ物) */
+function zip(files){
+var d=new Date(),tm=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF,dt=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+var parts=[],cen=[],off=0,csz=0;
+files.forEach(function(f){
+var nm=enc.encode(f.name),data=enc.encode(f.text),crc=crc32(data);
+var h=new DataView(new ArrayBuffer(30));
+h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,tm,true);h.setUint16(12,dt,true);
+h.setUint32(14,crc,true);h.setUint32(18,data.length,true);h.setUint32(22,data.length,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+parts.push(new Uint8Array(h.buffer),nm,data);
+var c=new DataView(new ArrayBuffer(46));
+c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,tm,true);c.setUint16(14,dt,true);
+c.setUint32(16,crc,true);c.setUint32(20,data.length,true);c.setUint32(24,data.length,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+cen.push(new Uint8Array(c.buffer),nm);csz+=46+nm.length;
+off+=30+nm.length+data.length});
+var e=new DataView(new ArrayBuffer(22));
+e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,csz,true);e.setUint32(16,off,true);
+return new Blob(parts.concat(cen,[new Uint8Array(e.buffer)]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+function x(s){return String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function colName(i){var s="";i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
+function ref(r,c){return colName(c)+(r+1)}
+/* 表示幅(全角=2、半角=1) */
+function wid(s){var w=0;for(var i=0;i<s.length;i++)w+=s.charCodeAt(i)>0xFF?2:1;return w}
+function txt(el){if(!el)return "";return String(el.innerText||el.textContent||"").replace(/\r/g,"").split("\n").map(function(l){return l.replace(/\s+/g," ").trim()}).filter(function(l){return l!==""}).join("\n")}
+
+/* 書式の登録(同じ組み合わせは1つにまとめる) */
+function Styles(){
+var FONT='<name val="游ゴシック"/><family val="3"/><charset val="128"/>';
+var fonts=['<font><sz val="10"/>'+FONT+'</font>','<font><b/><sz val="10"/>'+FONT+'</font>','<font><b/><sz val="16"/>'+FONT+'</font>','<font><b/><sz val="10"/><color rgb="FFC00000"/>'+FONT+'</font>','<font><sz val="9"/><color rgb="FF444444"/>'+FONT+'</font>','<font><b/><sz val="12"/>'+FONT+'</font>'];
+var F={n:0,b:1,title:2,ng:3,small:4,big:5};
+var fmts={0:1,1:164,2:165,3:166},xfs=[],keys={};
+function get(o){
+var k=[o.f||"n",o.fill?1:0,o.bd?1:0,o.dec==null?"":o.dec,o.h||"",o.v||"center",o.wrap?1:0].join("|");
+if(keys[k]!=null)return keys[k];
+var a='<xf numFmtId="'+(o.dec==null?0:fmts[Math.min(3,o.dec)])+'" fontId="'+F[o.f||"n"]+'" fillId="'+(o.fill?2:0)+'" borderId="'+(o.bd?1:0)+'" xfId="0"'+
+(o.dec!=null?' applyNumberFormat="1"':'')+' applyFont="1"'+(o.fill?' applyFill="1"':'')+(o.bd?' applyBorder="1"':'')+' applyAlignment="1"><alignment'+(o.h?' horizontal="'+o.h+'"':'')+' vertical="'+(o.v||"center")+'"'+(o.wrap?' wrapText="1"':'')+'/></xf>';
+keys[k]=xfs.length;xfs.push(a);return keys[k]}
+get({});
+return {get:get,xml:function(){
+return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+'<numFmts count="3"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="0.000"/></numFmts>'+
+'<fonts count="'+fonts.length+'">'+fonts.join("")+'</fonts>'+
+'<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE3EAF1"/><bgColor indexed="64"/></patternFill></fill></fills>'+
+'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF555555"/></left><right style="thin"><color rgb="FF555555"/></right><top style="thin"><color rgb="FF555555"/></top><bottom style="thin"><color rgb="FF555555"/></bottom><diagonal/></border></borders>'+
+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+'<cellXfs count="'+xfs.length+'">'+xfs.join("")+'</cellXfs>'+
+'<cellStyles count="1"><cellStyle name="標準" xfId="0" builtinId="0"/></cellStyles></styleSheet>'}}}
+
+/* 表(thead/tbody)を、結合も含めて升目に並べる */
+function place(rows,grid,merges,r0,kind){
+var occ={};
+rows.forEach(function(tr,i){
+var R=r0+i,c=0;grid[R]=grid[R]||[];
+Array.prototype.forEach.call(tr.cells,function(td){
+while(occ[R+","+c])c++;
+var rs=Math.max(1,td.rowSpan||1),cs=Math.max(1,td.colSpan||1),cl=td.classList;
+var cell={t:txt(td),kind:kind,h:cl.contains("l")?"left":(cl.contains("n")?"right":"center"),ng:cl.contains("ngc"),rs:rs,cs:cs};
+grid[R][c]=cell;
+for(var a=0;a<rs;a++)for(var b=0;b<cs;b++){if(a||b){occ[(R+a)+","+(c+b)]=1;grid[R+a]=grid[R+a]||[];grid[R+a][c+b]={cover:cell}}}
+if(rs>1||cs>1)merges.push(ref(R,c)+":"+ref(R+rs-1,c+cs-1));
+c+=cs})});
+return r0+rows.length}
+
+/* pages: 計算書の紙面(.sheet)の配列。opt: {sheet:シート名, paper:"a4"|"a3"} */
+function fromPages(pages,opt){
+opt=opt||{};
+var host=document.createElement("div");host.style.cssText="position:absolute;left:-20000px;top:0;";document.body.appendChild(host);
+pages.forEach(function(p){p.style.transform="";host.appendChild(p)});
+var S=Styles(),grid=[],merges=[],ncol=0,R=0,headTop=0,headEnd=0;
+try{
+var p0=pages[0],t0=p0.querySelector(".tb table");
+var title=txt(p0.querySelector(".sh .t"));
+var L=txt(p0.querySelector(".sh .l")).split("\n"),RR=txt(p0.querySelector(".sh .r")).split("\n").filter(Boolean);
+var cond=txt(p0.querySelector(".cond"));
+var foot=Array.prototype.map.call(p0.querySelectorAll(".ft p"),txt).filter(Boolean);
+/* 表の列数 */
+var hr=t0.tHead?Array.prototype.slice.call(t0.tHead.rows):[];
+hr.forEach(function(tr){var n=0;Array.prototype.forEach.call(tr.cells,function(td){n+=Math.max(1,td.colSpan||1)});ncol=Math.max(ncol,n)});
+if(!ncol)ncol=1;
+/* 上の部分(表題・件名・日付など) */
+var half=Math.max(1,Math.floor(ncol/2)),rq=Math.max(1,Math.min(4,ncol-half));
+grid[R]=[{t:title,f:"title",h:"center"}];merges.push(ref(R,0)+":"+ref(R,ncol-1));R++;
+var labelV=L.length>1?L.slice(1).join(" "):"",lines=Math.max(1,RR.length);
+for(var i=0;i<lines;i++){
+grid[R]=[];
+if(i===0){grid[R][0]={t:(L[0]||"件名"),f:"b"};if(ncol>1){grid[R][1]={t:labelV,f:"big"};if(half>2)merges.push(ref(R,1)+":"+ref(R,half-1))}}
+if(RR[i]){grid[R][ncol-rq]={t:RR[i],h:"right"};if(rq>1)merges.push(ref(R,ncol-rq)+":"+ref(R,ncol-1))}
+R++}
+if(cond){grid[R]=[{t:cond,f:"small",wrap:1}];merges.push(ref(R,0)+":"+ref(R,ncol-1));R++}
+R++;
+/* 表 */
+headTop=R;R=place(hr,grid,merges,R,"th");headEnd=R;
+pages.forEach(function(p){
+var t=p.querySelector(".tb table");
+Array.prototype.forEach.call(t.tBodies,function(tb){R=place(Array.prototype.slice.call(tb.rows),grid,merges,R,"td")})});
+var bodyEnd=R;
+/* 下の注記 */
+if(foot.length){R++;foot.forEach(function(f){grid[R]=[{t:f,f:"small",wrap:1,foot:1}];merges.push(ref(R,0)+":"+ref(R,ncol-1));R++})}
+}finally{document.body.removeChild(host)}
+
+/* 列幅: 表の中身から決める(全角2文字分=幅2) */
+var cw=[];for(var c=0;c<ncol;c++)cw[c]=6;
+for(var r=headTop;r<bodyEnd;r++){var row=grid[r]||[];row.forEach(function(cell,c){if(!cell||cell.cover||cell.cs>1)return;cell.t.split("\n").forEach(function(l){cw[c]=Math.max(cw[c],Math.min(cell.kind==="th"?14:34,wid(l)+2))})})}
+var total=cw.reduce(function(s,v){return s+v},0);
+
+/* セルを書き出す */
+var sd=[];
+for(var r=0;r<R;r++){
+var row=grid[r]||[],cells=[],maxL=1,custom=false,big=false;
+for(var c=0;c<ncol;c++){
+var cell=row[c];if(!cell)continue;
+var src=cell.cover||cell,isTab=src.kind==="th"||src.kind==="td";
+if(src.f==="big")big=true;
+var st={bd:isTab?1:0,v:"center"};
+if(src.kind==="th"){st.f="b";st.fill=1;st.h="center";st.wrap=1}
+else if(src.kind==="td"){st.f=src.ng?"ng":"n";st.h=src.h;st.wrap=1}
+else{st.f=src.f||"n";if(src.h)st.h=src.h;if(src.wrap){st.wrap=1;st.v="top"}}
+if(cell.cover){cells.push('<c r="'+ref(r,c)+'" s="'+S.get(st)+'"/>');continue}
+var t=cell.t||"",num=null;
+if(src.kind==="td"&&/^-?\d+(\.\d+)?$/.test(t)){num=t;st.dec=(t.split(".")[1]||"").length}
+var s=S.get(st);
+if(num!=null)cells.push('<c r="'+ref(r,c)+'" s="'+s+'"><v>'+(+num)+'</v></c>');
+else if(t!=="")cells.push('<c r="'+ref(r,c)+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+x(t)+'</t></is></c>');
+else cells.push('<c r="'+ref(r,c)+'" s="'+s+'"/>');
+/* 行の高さ: 改行と折り返しから見積もる */
+var span=0;for(var k=0;k<(src.cs||1);k++)span+=cw[c+k]||8;
+if(src.wrap||isTab){custom=true;var lw=src.foot||src.f==="small"?total:span;var n=0;t.split("\n").forEach(function(l){n+=Math.max(1,Math.ceil(wid(l)/Math.max(4,lw-1)))});if(!(src.rs>1))maxL=Math.max(maxL,n)}}
+var ht=r===0?26:(custom?Math.max(18,maxL*13+5):(big?21:null));
+sd.push('<row r="'+(r+1)+'"'+(ht?' ht="'+ht+'" customHeight="1"':'')+'>'+cells.join("")+'</row>')}
+
+var name=String(opt.sheet||"計算書").replace(/[\[\]:*?\/\\]/g,"").slice(0,31)||"計算書";
+var sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:'+ref(R-1,ncol-1)+'"/>'+
+'<sheetViews><sheetView workbookViewId="0" zoomScale="100"><pane ySplit="'+headEnd+'" topLeftCell="A'+(headEnd+1)+'" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A'+(headEnd+1)+'" sqref="A'+(headEnd+1)+'"/></sheetView></sheetViews>'+
+'<sheetFormatPr defaultRowHeight="15"/><cols>'+cw.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'}).join("")+'</cols>'+
+'<sheetData>'+sd.join("")+'</sheetData>'+
+(merges.length?'<mergeCells count="'+merges.length+'">'+merges.map(function(m){return '<mergeCell ref="'+m+'"/>'}).join("")+'</mergeCells>':'')+
+'<printOptions horizontalCentered="1"/><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'+
+'<pageSetup paperSize="'+(opt.paper==="a3"?8:9)+'" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+var files=[
+{name:"[Content_Types].xml",text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+{name:"_rels/.rels",text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+{name:"xl/workbook.xml",text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+x(name)+'" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">\''+x(name.replace(/'/g,"''"))+'\'!$'+(headTop+1)+':$'+headEnd+'</definedName></definedNames></workbook>'},
+{name:"xl/_rels/workbook.xml.rels",text:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+{name:"xl/styles.xml",text:S.xml()},
+{name:"xl/worksheets/sheet1.xml",text:sheet}];
+return zip(files)}
+return {fromPages:fromPages}})();
+
 /* ===================== ファイルの保存(PDF・バックアップ) ===================== */
 /* iPhoneなどタッチ端末は共有シート(「ファイルに保存」やLINEで送る)、パソコンは普通のダウンロード */
 function isTouch(){try{return matchMedia("(pointer:coarse)").matches}catch(e){return false}}
@@ -1129,6 +1285,14 @@ var b=document.createElement("button");b.type="button";b.className="btn pri";b.t
 b.addEventListener("click",function(){shareFile(file,el)});
 w.appendChild(t);w.appendChild(b);el.appendChild(w);b.focus();return}
 downloadBlob(blob,fn);el.textContent="ダウンロードしました: "+fn}
+
+/* 計算書をExcelで保存(PDFと同じ内容) */
+function makeXlsx(){
+var HV=MODE==="hv",msg=$(HV?"hpdfmsg":"pdfmsg"),TITLE=HV?"高圧幹線計算書":"幹線計算書";
+try{var blob=XL.fromPages(buildPages(),{sheet:TITLE,paper:PJ.ppr});
+deliverFile(blob,TITLE+(PJ.name?"_"+PJ.name.replace(/[\\\/:*?"<>|]/g,""):"")+".xlsx",msg,true)}
+catch(e){msg.textContent="Excelを作れませんでした: "+(e&&e.message||e)}}
+$("xlsx").addEventListener("click",makeXlsx);$("hxlsx").addEventListener("click",makeXlsx);
 
 /* ===================== バックアップ(書き出し・読み込み) ===================== */
 function ymd(){var d=new Date(),p=function(x){return (x<10?"0":"")+x};return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())}
