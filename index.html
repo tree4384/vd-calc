@@ -226,8 +226,9 @@ html.zvon,html.zvon body{overflow:hidden}
 .zvb button{font:inherit;font-size:.9rem;font-weight:700;color:#eef2f6;background:#323b45;border:1px solid #46515d;border-radius:8px;height:2.5rem;min-width:2.7rem;padding:0 10px;cursor:pointer;flex:none}
 .zvb button:hover{background:#3b4652}
 .zvb button:focus-visible{outline:2px solid #8cc0ff;outline-offset:1px}
-.zvb .zvx{background:none;border-color:transparent;padding:0 8px}
-.zvt{flex:1;min-width:0;text-align:center;font-size:.85rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#c5d0db}
+.zvb .zvx{margin-left:4px;padding:0 12px;background:#e8eef4;border-color:#e8eef4;color:#1b2128}
+.zvb .zvx:hover{background:#fff}
+.zvt{flex:1;min-width:0;text-align:left;padding-left:4px;font-size:.85rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#c5d0db}
 .zvm{flex:none;margin:0;padding:6px 12px;font-size:.8rem;line-height:1.5;background:#5a3a1a;color:#ffe2c2;text-align:center}
 .zvs{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
 .zvw{display:flex;flex-direction:column;gap:14px;width:max-content;min-width:100%;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}
@@ -1364,8 +1365,8 @@ function touchy(){try{return matchMedia("(pointer:coarse)").matches}catch(e){ret
 function build(){
 el=document.createElement("div");el.className="zv";el.hidden=true;
 el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","計算書の拡大表示");
-el.innerHTML='<div class="zvb"><button type="button" class="zvx" data-z="x">✕ 閉じる</button><span class="zvt" aria-live="polite"></span>'+
-'<button type="button" data-z="o" aria-label="縮小">−</button><button type="button" data-z="f" aria-label="ページ全体を表示">全体</button><button type="button" data-z="i" aria-label="拡大">＋</button></div>'+
+el.innerHTML='<div class="zvb"><span class="zvt" aria-live="polite"></span>'+
+'<button type="button" data-z="o" aria-label="縮小">−</button><button type="button" data-z="f" aria-label="ページ全体を表示">全体</button><button type="button" data-z="i" aria-label="拡大">＋</button><button type="button" class="zvx" data-z="x">✕ 閉じる</button></div>'+
 '<p class="zvm" hidden>入力が変わっています。「計算する」を押すと、この計算書も新しくなります。</p>'+
 '<div class="zvs"><div class="zvw"></div></div><div class="zvh" aria-hidden="true"></div>';
 document.body.appendChild(el);
