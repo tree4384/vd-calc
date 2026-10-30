@@ -2,7 +2,7 @@
    - ページ本体: まずネットから最新を取りに行き、電波が悪ければ(4秒)保存済みのものを表示
    - 部品(アイコン・PDF作成ライブラリ・フォント): 一度読み込んだら保存したものを使う
    アプリを更新したときは CACHE の番号を1つ上げる */
-const CACHE = "vd-calc-6";
+const CACHE = "vd-calc-7";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 const LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",

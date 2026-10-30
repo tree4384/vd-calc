@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<script>try{var _t=localStorage.getItem("app-theme");if(_t==="light"||_t==="dark")document.documentElement.setAttribute("data-theme",_t)}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
@@ -204,6 +205,11 @@ textarea{width:100%;min-height:6em;font:inherit;font-size:.8rem;color:var(--ink)
 .ssync{font-size:.74rem;color:var(--sub);margin:8px 2px 0;padding-top:8px;border-top:1px solid var(--line)}
 .ssync.ng{color:var(--ng)}
 .topbar{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+/* 画面の色(自動・ライト・ダーク)。上のバーの右端 */
+.thm{margin-left:auto;display:inline-flex;flex:none;padding:2px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.thm button{font:inherit;font-size:.78rem;line-height:1.2;border:0;background:none;color:var(--sub);padding:6px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.thm button:hover{color:var(--ink)}
+.thm button[aria-pressed="true"]{background:var(--acc);color:var(--on-acc);font-weight:700}
 .sbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.85rem;font-weight:700;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--acc);cursor:pointer;min-width:0;max-width:100%}
 .sbtn svg{width:16px;height:16px;flex:none}
 .sbtn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -281,7 +287,7 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 <p class="shint" id="sHint" hidden>ホーム画面に追加して使うと、保存した現場が消えにくくなります(Safariの共有ボタン →「ホーム画面に追加」)。</p>
 </aside>
 <main>
-<header class="top"><div class="topbar"><button type="button" class="sbtn" id="sOpen" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h9"/></svg><span id="sCur">現場一覧</span></button></div><h1><img class="appi" src="icon-192.png" alt="" width="36" height="36">電圧降下計算</h1>
+<header class="top"><div class="topbar"><button type="button" class="sbtn" id="sOpen" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h9"/></svg><span id="sCur">現場一覧</span></button><div class="thm" id="thm" role="group" aria-label="画面の色"><button type="button" data-th="auto" aria-pressed="false" title="端末の設定に合わせる">自動</button><button type="button" data-th="light" aria-pressed="false">ライト</button><button type="button" data-th="dark" aria-pressed="false">ダーク</button></div></div><h1><img class="appi" src="icon-192.png" alt="" width="36" height="36">電圧降下計算</h1>
 <p class="lead">幹線ごとに負荷と長さを入れて「計算する」を押すと、ケーブルの太さと判定が出ます。計算書はPDF・Excelで保存できます。低圧と高圧は下のタブで切り替えます。</p></header>
 <section class="card pjcard">
 <div class="pjgrid">
@@ -1500,6 +1506,15 @@ ZV.attach($("pv"));ZV.attach($("hpv"));
 $("zoom").addEventListener("click",function(){ZV.open($("pv"),0)});
 $("hzoom").addEventListener("click",function(){ZV.open($("hpv"),0)});
 
+/* ===================== 画面の色(自動・ライト・ダーク) ===================== */
+(function(){
+var metas=Array.prototype.slice.call(document.querySelectorAll('meta[name="theme-color"]')),orig=metas.map(function(m){return m.getAttribute("content")});
+function cur(){var t="auto";try{t=localStorage.getItem("app-theme")||"auto"}catch(e){}return t==="light"||t==="dark"?t:"auto"}
+function apply(t){var r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);
+metas.forEach(function(m,k){var c=orig[k];if(t!=="auto"){var dark=/dark/.test(m.getAttribute("media")||"");c=orig[(t==="dark")===dark?k:1-k]}m.setAttribute("content",c)});
+Array.prototype.forEach.call(document.querySelectorAll("#thm [data-th]"),function(b){b.setAttribute("aria-pressed",b.getAttribute("data-th")===t?"true":"false")})}
+document.getElementById("thm").addEventListener("click",function(e){var b=e.target.closest("[data-th]");if(!b)return;var t=b.getAttribute("data-th");try{if(t==="auto")localStorage.removeItem("app-theme");else localStorage.setItem("app-theme",t)}catch(err){}apply(t)});
+apply(cur())})();
 /* ===================== ホーム画面アプリ・オフライン対応 ===================== */
 (function(){
 var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
