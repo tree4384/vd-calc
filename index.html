@@ -29,7 +29,7 @@ img{max-width:100%}
 </style>
 <style>
 /* Layout: 広い画面は左に入力(件名・幹線カード・下に固定の操作バー)、右に計算結果と計算書プレビューを固定表示。狭い画面は1列 */
-:root{--bg:#eef2f6;--card:#fff;--ink:#14212e;--sub:#5b6b7b;--line:#cfd8e1;--acc:#1f5fa8;--on-acc:#fff;--ok:#1a7f4b;--ng:#c0392b;--head:#e3eaf1;--brb:#f3f8fd;--zb:#f6f9fb;--brz:#e9f2fb;--brh:#d3e4f4;--desk:#d9e0e7;--font:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif}
+:root{--outf:'BIZ UDPGothic','Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans CJK JP','Yu Gothic',Meiryo,sans-serif;--bg:#eef2f6;--card:#fff;--ink:#14212e;--sub:#5b6b7b;--line:#cfd8e1;--acc:#1f5fa8;--on-acc:#fff;--ok:#1a7f4b;--ng:#c0392b;--head:#e3eaf1;--brb:#f3f8fd;--zb:#f6f9fb;--brz:#e9f2fb;--brh:#d3e4f4;--desk:#d9e0e7;--font:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1721;--card:#18232f;--ink:#e8eef4;--sub:#9aabbb;--line:#2b3a4a;--acc:#6aa8ee;--on-acc:#0f1721;--ok:#4cc38a;--ng:#ff7b6b;--head:#1f2d3b;--brb:#1b2937;--zb:#1c2935;--brz:#203244;--brh:#27415a;--desk:#0b1219;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1721;--card:#18232f;--ink:#e8eef4;--sub:#9aabbb;--line:#2b3a4a;--acc:#6aa8ee;--on-acc:#0f1721;--ok:#4cc38a;--ng:#ff7b6b;--head:#1f2d3b;--brb:#1b2937;--zb:#1c2935;--brz:#203244;--brh:#27415a;--desk:#0b1219;color-scheme:dark}
 *{box-sizing:border-box}
@@ -158,11 +158,14 @@ textarea{width:100%;min-height:6em;font:inherit;font-size:.8rem;color:var(--ink)
 .pgbox>.sheet{position:absolute;left:0;top:0;transform-origin:0 0}
 #pdfmsg{min-height:1.2em}
 /* ===== 幹線計算書(紙面)。紙なので常に白地・黒字で固定 ===== */
-.sheet{background:#fff;color:#111;font-family:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;font-variant-numeric:tabular-nums;padding:30px 34px 26px;display:flex;flex-direction:column;overflow:hidden}
+.sheet{background:#fff;color:#111;font-family:var(--outf);font-variant-numeric:tabular-nums;padding:30px 34px 26px;display:flex;flex-direction:column;overflow:hidden}
 .sheet .sh{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:12px;border-bottom:2px solid #111;padding-bottom:6px}
 .sheet .sh .t{font-size:22px;font-weight:700;letter-spacing:.5em;text-align:center;padding-left:.5em}
 .sheet .sh .t.tl{font-size:20px;letter-spacing:.1em;padding-left:.1em}
 .ttl{max-width:26em;margin:0 0 12px}
+.outset{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px;max-width:42em;margin:0 0 12px}
+.outset .ttl{margin:0;max-width:none}
+@media (max-width:520px){.outset{grid-template-columns:1fr}}
 .sheet .sh .l{font-size:11px;line-height:1.5}
 .sheet .sh .r{font-size:11px;text-align:right;line-height:1.5}
 .sheet .sh b{font-size:13px}
@@ -353,7 +356,7 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 
 <section class="card">
 <h2><span id="ttlL">電圧降下計算書</span>(PDF・Excel)</h2>
-<div class="f ttl"><label for="pjTitle">題名(タップで編集できます)</label><input id="pjTitle" placeholder="電圧降下計算書" autocomplete="off"></div>
+<div class="outset"><div class="f ttl"><label for="pjTitle">題名(タップで編集できます)</label><input id="pjTitle" placeholder="電圧降下計算書" autocomplete="off"></div><div class="f"><label for="outFont">出力のフォント(PDF・Excel)</label><select id="outFont" class="outfsel"></select></div></div>
 <div class="pvbar">
 <label class="chk"><input type="checkbox" id="pbr"> 分岐選定の列を入れる</label>
 <span class="pvbtns"><button type="button" class="btn pri" id="pdf">PDFを保存</button><button type="button" class="btn" id="xlsx">Excelで保存</button><button type="button" class="btn" id="zoom">拡大して見る</button></span>
@@ -399,7 +402,7 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 </section>
 <section class="card">
 <h2><span id="ttlH">高圧幹線計算書</span>(PDF・Excel)</h2>
-<div class="f ttl"><label for="pjHTitle">題名(タップで編集できます)</label><input id="pjHTitle" placeholder="高圧幹線計算書" autocomplete="off"></div>
+<div class="outset"><div class="f ttl"><label for="pjHTitle">題名(タップで編集できます)</label><input id="pjHTitle" placeholder="高圧幹線計算書" autocomplete="off"></div><div class="f"><label for="outFontH">出力のフォント(PDF・Excel)</label><select id="outFontH" class="outfsel"></select></div></div>
 <div class="pvbar"><button type="button" class="btn pri" id="hpdf">PDFを保存</button><button type="button" class="btn" id="hxlsx">Excelで保存</button><button type="button" class="btn" id="hzoom">拡大して見る</button></div>
 <p class="note" id="hpdfmsg"></p>
 <p class="note" style="margin:0 0 8px">ページをタップすると、全画面で拡大して見られます。</p>
@@ -408,6 +411,13 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 </div></div>
 </main>
 <script>
+/* 出力(PDF・Excel)のフォントの一覧(起動の途中で使うので最初に置く) */
+var OUTF=[["bizg","BIZ UDPゴシック(標準)","'BIZ UDPGothic'","BIZ+UDPGothic","BIZ UDPゴシック","g"],
+["bizm","BIZ UDP明朝","'BIZ UDPMincho'","BIZ+UDPMincho","BIZ UDP明朝","m"],
+["notos","Noto Sans JP(ゴシック)","'Noto Sans JP'","Noto+Sans+JP","Noto Sans JP","g"],
+["notom","Noto Serif JP(明朝)","'Noto Serif JP'","Noto+Serif+JP","Noto Serif JP","m"],
+["sys","端末の標準(ゴシック)","","","游ゴシック","g"]];
+var OUTF_G="'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans CJK JP','Yu Gothic',Meiryo,sans-serif",OUTF_M="'Hiragino Mincho ProN','Yu Mincho','YuMincho','Noto Serif CJK JP',serif",OUTF_LD={bizg:1};
 var K={"1p2":35.6,"3p3":30.8,"1p3":17.8,"3p4":17.8};
 var DV={"1p2":100,"3p3":200,"1p3":100,"3p4":240};
 var SYS={"1p2":"1φ2W","3p3":"3φ3W","1p3":"1φ3W","3p4":"3φ4W"};
@@ -1215,7 +1225,7 @@ function txt(el){if(!el)return "";return String(el.innerText||el.textContent||""
 
 /* 書式の登録(同じ組み合わせは1つにまとめる) */
 function Styles(){
-var FONT='<name val="游ゴシック"/><family val="3"/><charset val="128"/>';
+var FONT='<name val="'+outFontXl()+'"/><family val="'+(outFontRec()[5]==="m"?1:3)+'"/><charset val="128"/>';
 var fonts=['<font><sz val="10"/>'+FONT+'</font>','<font><b/><sz val="10"/>'+FONT+'</font>','<font><b/><sz val="16"/>'+FONT+'</font>','<font><b/><sz val="10"/><color rgb="FFC00000"/>'+FONT+'</font>','<font><sz val="9"/><color rgb="FF444444"/>'+FONT+'</font>','<font><b/><sz val="12"/>'+FONT+'</font>'];
 var F={n:0,b:1,title:2,ng:3,small:4,big:5};
 var fmts={0:1,1:164,2:165,3:166},xfs=[],keys={};
@@ -1515,6 +1525,26 @@ metas.forEach(function(m,k){var c=orig[k];if(t!=="auto"){var dark=/dark/.test(m.
 Array.prototype.forEach.call(document.querySelectorAll("#thm [data-th]"),function(b){b.setAttribute("aria-pressed",b.getAttribute("data-th")===t?"true":"false")})}
 document.getElementById("thm").addEventListener("click",function(e){var b=e.target.closest("[data-th]");if(!b)return;var t=b.getAttribute("data-th");try{if(t==="auto")localStorage.removeItem("app-theme");else localStorage.setItem("app-theme",t)}catch(err){}apply(t)});
 apply(cur())})();
+/* ===================== 出力(PDF・Excel)のフォント =====================
+   選んだフォントは端末に保存。PDFの紙面はCSSの --outf、Excelはフォント名で指定する。
+   [記号, 表示名, CSSの名前, Google Fontsの名前, Excelのフォント名, ゴシックg/明朝m] */
+
+function outFontRec(){var v="bizg";try{v=localStorage.getItem("out-font")||"bizg"}catch(e){}for(var i=0;i<OUTF.length;i++)if(OUTF[i][0]===v)return OUTF[i];return OUTF[0]}
+function outFont(){var f=outFontRec();return (f[2]?f[2]+",":"")+(f[5]==="m"?OUTF_M:OUTF_G)}
+function outFontXl(){return outFontRec()[4]}
+function outFontApply(){var f=outFontRec();
+if(f[3]&&!OUTF_LD[f[0]]){OUTF_LD[f[0]]=1;var l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family="+f[3]+":wght@400;700&display=swap";document.head.appendChild(l)}
+document.documentElement.style.setProperty("--outf",outFont());
+Array.prototype.forEach.call(document.querySelectorAll(".outfsel"),function(s){s.value=f[0]})}
+(function(){
+Array.prototype.forEach.call(document.querySelectorAll(".outfsel"),function(s){
+s.innerHTML=OUTF.map(function(f){return '<option value="'+f[0]+'">'+f[1]+'</option>'}).join("");
+s.addEventListener("change",function(){try{localStorage.setItem("out-font",s.value)}catch(e){}outFontApply();if(typeof FIGPNG!=="undefined"){FIGPNG={};FIGPNG_N=0}renderPreview()})});
+outFontApply();
+/* フォントの読み込みが終わったら、紙面(と断面図の画像)を描き直す */
+if(document.fonts&&document.fonts.addEventListener)document.fonts.addEventListener("loadingdone",function(){if(typeof FIGPNG!=="undefined"){FIGPNG={};FIGPNG_N=0}clearTimeout(OUTF_T);OUTF_T=setTimeout(renderPreview,200)});
+if(outFontRec()[0]!=="bizg")renderPreview()})();
+var OUTF_T=0;
 /* ===================== ホーム画面アプリ・オフライン対応 ===================== */
 (function(){
 var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
