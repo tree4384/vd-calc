@@ -1,8 +1,9 @@
 /* 電圧降下計算: オフライン対応
    - ページ本体: まずネットから最新を取りに行き、電波が悪ければ(4秒)保存済みのものを表示
+     (ブラウザの一時保存を通さず、毎回サーバーに新しい版がないか確かめる。更新がすぐ届くように)
    - 部品(アイコン・PDF作成ライブラリ・フォント): 一度読み込んだら保存したものを使う
    アプリを更新したときは CACHE の番号を1つ上げる */
-const CACHE = "vd-calc-11";
+const CACHE = "vd-calc-12";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./sjis.js"];
 const LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
@@ -12,7 +13,7 @@ const LIBS = [
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
     const c = await caches.open(CACHE);
-    await c.addAll(SHELL);
+    await c.addAll(SHELL.map((u) => new Request(u, { cache: "reload" })));
     // ライブラリは取れなくてもインストールは止めない(ページを開いたときにも保存される)
     await Promise.all(LIBS.map((u) => c.add(new Request(u, { mode: "cors" })).catch(() => {})));
     await self.skipWaiting();
@@ -36,7 +37,8 @@ function withTimeout(p, ms) {
 
 async function pageFromCache(req) {
   const c = await caches.open(CACHE);
-  return (await c.match(req, { ignoreSearch: true })) || (await c.match("./index.html")) || (await c.match("./"));
+  /* いちばん新しく取れた版(./index.html)を先に使う */
+  return (await c.match("./index.html")) || (await c.match(req, { ignoreSearch: true })) || (await c.match("./"));
 }
 
 self.addEventListener("fetch", (e) => {
@@ -47,7 +49,7 @@ self.addEventListener("fetch", (e) => {
   const isPage = req.mode === "navigate" || (sameOrigin && /(\/|\/index\.html)$/.test(url.pathname));
 
   if (isPage) {
-    const net = fetch(req).then(async (res) => {
+    const net = fetch(req.url, { cache: "no-cache", credentials: "same-origin", redirect: "manual" }).then(async (res) => {
       if (res && res.ok) {
         const c = await caches.open(CACHE);
         await c.put("./index.html", res.clone());
