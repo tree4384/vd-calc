@@ -278,6 +278,47 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 input[type=checkbox],input[type=radio]{accent-color:var(--acc)}
 /* iPhoneで入力欄をタップしたときに画面が勝手に拡大されないように(16px未満だと拡大される) */
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}.pjcard .pjn input{font-size:18px!important}}
+/* AIチェック(Gemini) */
+.aic{--wa:#9a5b00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .aic{--wa:#f0b45a}}
+:root[data-theme="dark"] .aic{--wa:#f0b45a}
+.aic h2{display:flex;align-items:center;gap:8px}
+.aitag{font-size:.7rem;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:0 8px;letter-spacing:0}
+.aic .aiq{margin-top:10px}
+.aibar{display:flex;gap:10px;margin-top:10px}
+.aibar .btn{flex:1}
+.aimsg{margin-top:8px}
+.aimsg:empty{display:none}
+.aimsg.ng{color:var(--ng)}
+.aiout:empty{display:none}
+.aiout{margin-top:12px;transition:opacity .15s}
+.aiout.stale{opacity:.45}
+@media (prefers-reduced-motion:reduce){.aiout{transition:none}}
+.aiv{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aiv .sub{font-size:.75rem;color:var(--sub)}
+.aic .badge.wa{color:var(--wa)}
+.ais{margin:8px 0 0;line-height:1.7}
+.aia{margin-top:10px;padding:8px 12px;border-left:3px solid var(--acc);border-radius:0 8px 8px 0;background:var(--brb)}
+.aia p{margin:2px 0 0;white-space:pre-wrap}
+.ail{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.ail li{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);line-height:1.65}
+.ail li.ng{border-left-color:var(--ng);color:var(--ink)}
+.ail li.wa{border-left-color:var(--wa)}
+.ail .ait{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
+.ail .ait b{font-size:.9rem}
+.ail .ail-l{font-size:.72rem;font-weight:700;white-space:nowrap}
+.ail li.ng .ail-l{color:var(--ng)}
+.ail li.wa .ail-l{color:var(--wa)}
+.ail li .ail-l{color:var(--sub)}
+.airaw{white-space:pre-wrap;margin:8px 0 0;font-size:.9rem}
+.aifoot{margin-top:10px}
+.aiset{margin-top:12px}
+.aiset summary{margin-top:0}
+.aiset .note{margin-top:8px}
+.aiset a{color:var(--acc)}
+.aikey{display:flex;gap:8px;margin-top:8px}
+.aikey input{flex:1}
+.aikey .mini{flex:none;height:2.5rem}
 </style>
 </head>
 <body>
@@ -630,7 +671,7 @@ h+='</tbody></table>';
 $("rt").innerHTML=h;LASTTSV=tsv.join("\n");
 eachCard(function(c,r){if(r)c.querySelector(".sum").innerHTML=sumHTML(r)});
 $("rt").classList.remove("stale");$("pv").classList.remove("stale");$("stale").hidden=true;
-renderPreview()}
+renderPreview();if(window.aiSync)aiSync()}
 
 /* ===== 幹線計算書(紙面) ===== */
 var PAPER={a4:{w:1123,h:794,mm:[297,210],sc:2.6},a3:{w:1123,h:794,mm:[420,297],sc:3.6}};
@@ -849,7 +890,7 @@ $(p.p+"Prev").addEventListener("click",function(){S.go(S.i-1)});
 $(p.p+"Next").addEventListener("click",function(){S.go(S.i+1)});
 return S}
 var LS=Strip({box:"rows",p:"r",list:function(){return rows}}),HS=Strip({box:"hrows",p:"hr",list:function(){return rowsH}});
-function mark(){$("rt").classList.add("stale");$("pv").classList.add("stale");$("stale").hidden=false}
+function mark(){$("rt").classList.add("stale");$("pv").classList.add("stale");$("stale").hidden=false;if(window.aiStale)aiStale()}
 function snap(){return {mat:MAT,alr:$("alr").value,cus:CUS,rows:rows,rowsH:rowsH,nextId:nextId,pj:PJ}}
 function save(){siteTouch()}
 function rd(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
@@ -997,7 +1038,7 @@ h+='<td class="memo">'+esc(mt.join(" / "))+'</td></tr>'});
 h+='</tbody></table>';
 $("hrt").innerHTML=h;$("hrt").classList.remove("stale");$("hpv").classList.remove("stale");$("hstale").hidden=true;
 hEach(function(c,r){if(r)c.querySelector(".sum").innerHTML=hSumHTML(r)});
-if(MODE==="hv")renderPreview()}
+if(MODE==="hv")renderPreview();if(window.aiSync)aiSync()}
 function hCols(){return [["No.",2.6],["幹線番号",7],["負荷名称",8],["こう長<br>L[m]",4.2],["負荷容量<br>(×需要率)",7.5],["力率<br>cosθ",4],["負荷電流<br>I[A]",5],["ケーブル<br>種別・太さ",9.5],["敷設",4.5],["許容電流<br>[A]",5],["R / X<br>[Ω/km]",6],["電圧降下<br>e[V]<br>[%]",5.4],["目標<br>[%]",3.6],["短絡電流<br>[kA]<br>遮断時間[s]",6],["熱的必要<br>断面積<br>[mm²]",5.4],["保護機器<br>定格[A]<br>遮断[kA]",7.5],["判定",3.6],["備考",10]]}
 function hSheetRow(o,i){var r=o.r,bad=!o.size||o.err,t=[];
 t.push(['',i+1]);t.push(['l',esc(r.name)]);t.push(['l',esc(r.load)]);t.push(['n',isNum(r.l)?esc(r.l):"-"]);
@@ -1054,7 +1095,7 @@ card.querySelector(".cs").textContent="補正(周囲温度): "+(cp.length?cp.joi
 card.querySelector(".sum").innerHTML=hSumHTML(r)}
 function hEach(fn){Array.prototype.forEach.call($("hrows").querySelectorAll(".rc"),function(c){fn(c,hById(c.getAttribute("data-id")))})}
 function hRender(){$("hrows").innerHTML=rowsH.map(function(r,i){return hRowHTML(r,i+1)}).join("");hEach(function(c,r){hRefresh(c,r)});HS.chips()}
-function hMark(){$("hrt").classList.add("stale");$("hpv").classList.add("stale");$("hstale").hidden=false}
+function hMark(){$("hrt").classList.add("stale");$("hpv").classList.add("stale");$("hstale").hidden=false;if(window.aiStale)aiStale()}
 function hOnField(e){var t=e.target,f=t.getAttribute&&t.getAttribute("data-f");if(!f)return;var card=t.closest(".rc"),r=hById(card.getAttribute("data-id"));if(!r)return;r[f]=t.value;if(f==="name")HS.name(r);hRefresh(card,r);hMark();save()}
 $("hrows").addEventListener("input",hOnField);$("hrows").addEventListener("change",hOnField);
 $("hrows").addEventListener("click",function(e){var b=e.target.closest("button[data-act]");if(!b)return;
@@ -1066,7 +1107,7 @@ $("hadd").addEventListener("click",function(){rowsH.push(hDefRow());hRender();hM
 $("hgo").addEventListener("click",function(){hRunCalc();$("hrt").scrollIntoView({block:"start"})});
 [["hIs","hIs"],["hT","hT"],["hTg","hTg"]].forEach(function(p){$(p[0]).addEventListener("input",function(){PJ[p[1]]=$(p[0]).value;save();hMark()})});
 $("hHz").addEventListener("change",function(){PJ.hHz=$("hHz").value;save();hRunCalc()});
-function setMode(m,quiet){MODE=m;PJ.mode=m;$("lvView").hidden=m!=="lv";$("hvView").hidden=m!=="hv";$("tabLv").setAttribute("aria-selected",String(m==="lv"));(m==="hv"?HS:LS).set((m==="hv"?HS:LS).i);$("tabHv").setAttribute("aria-selected",String(m==="hv"));if(!quiet)save();renderPreview()}
+function setMode(m,quiet){MODE=m;PJ.mode=m;$("lvView").hidden=m!=="lv";$("hvView").hidden=m!=="hv";$("tabLv").setAttribute("aria-selected",String(m==="lv"));(m==="hv"?HS:LS).set((m==="hv"?HS:LS).i);$("tabHv").setAttribute("aria-selected",String(m==="hv"));if(!quiet)save();renderPreview();if(window.aiReset){aiReset();aiPlace()}}
 $("tabLv").addEventListener("click",function(){setMode("lv")});
 $("tabHv").addEventListener("click",function(){setMode("hv")});
 
@@ -1652,6 +1693,256 @@ if(ios&&!standalone)$("sHint").hidden=false;
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
 if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")){
 window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}})();
+</script>
+<script>
+/* ===== AIチェック(Gemini)・電圧降下アプリの設定 ===== */
+var AICFG=(function(){
+function untag(h){var d=document.createElement("div");d.innerHTML=String(h==null?"":h).replace(/<br\s*\/?>/gi," ").replace(/<span class="s2">/g," / ");return d.textContent.replace(/\s+/g," ").trim()}
+/* 計算書の欄外(計算方法・根拠)をそのまま使う。件名・会社名・担当者は入れない */
+function method(){var sh=sheetShell(""),a=[];var c=sh.querySelector(".cond");if(c)a.push(c.textContent);Array.prototype.forEach.call(sh.querySelectorAll(".ft p"),function(p){a.push(p.textContent)});return a.join("\n")}
+function num(v){return isNum(v)&&+v>0}
+/* 許容電流の内訳(表の値と補正) */
+function ampParts(sp,s){try{
+var base,f=1;if(sp.ct==="other")base=CUS.other[s];
+else{var c=colOf(sp),i=CABM[sp.ct].sz.indexOf(s);base=i>=0?c[i]:null;if(sp.sd&&i>=0&&base!=null)base=Math.min(base,CABM[sp.ct].sd[i]);if(WIRES[sp.ct]&&sp.ins==="1")f=(PF[sp.n]||0.7)/0.7}
+if(base==null)return "";var p=["表の値"+base+"A"];
+if(f!==1)p.push("電線本数の係数"+(Math.round(f*100)/100));
+var t=tmpF(sp),m=mlF(sp);if(t!==1)p.push("周囲温度の補正"+t);if(m!=null&&m!==1)p.push("多条の低減率"+m);
+if(num(sp.c)&&+sp.c!==1)p.push("補正係数"+sp.c);var ar=arOf();if(ar!=null&&ar!==1)p.push("アルミの比"+ar);if(+sp.par>1)p.push(sp.par+"条");
+return "(内訳: "+p.join(" × ")+"。端数は切り捨て)"}catch(e){return ""}}
+function lvRow(o,i){
+var r=o.r,rr=o.rr||r,L=[],inp=[],res=[];
+L.push("■回路"+(i+1)+(r.name?": "+r.name:"")+(r.load?(r.name?" → ":": ")+r.load:""));
+inp.push("電気方式 "+lbl(M_OPTS,r.m)+" "+sysLabel(r));
+inp.push("こう長 "+(isNum(r.l)?r.l+"m":"未入力"));
+if(lcOn(r)){var s=lcSum(r);inp.push("住戸の負荷 "+(r.ls||[]).filter(function(x){return +x.k>0&&+x.n>0}).map(function(x){return x.k+"kVA×"+x.n+"戸"}).join("、")+"(計"+fmtKw(s.kw)+"kVA・"+s.n+"戸、需要率"+(num(r.ldm)?pct(r.ldm)+"(手入力)":(s.auto!=null?Math.round(s.auto*100)+"%(戸数から自動)":"-"))+")")}
+else if(isNum(r.x))inp.push((o.hasM?"一般負荷 ":"負荷 ")+r.x+" "+r.u+(r.u==="kW"?"(力率"+(isNum(r.pf)?r.pf:"0.85 ※空欄のため")+")":"")+(num(r.dm)?" ×需要率"+pct(r.dm):""));
+if(o.hasM){inp.push("電動機 "+mVals(r).map(function(k){return k+"kW"}).join("、")+"(計"+fmtKw(mSum(r))+"kW"+(num(r.mdm)?" ×需要率"+pct(r.mdm):"")+"、"+apkW(r.m,+r.v)+"A/kWで換算)")}
+inp.push("ケーブル "+(CT_LBL[r.ct]||r.ct)+(MAT==="al"?"(アルミ導体)":""));
+var ins=[lbl(INS_OPTS,r.ins)];
+if(r.ins==="1"&&WIRES[r.ct])ins.push("管内の電線"+lbl(N_OPTS,r.n));
+if(hasSd(r.ct,r.ins))ins.push("単心の並べ方 "+lbl(SD_OPTS,r.sd));
+if(r.tmp!=="")ins.push("周囲温度"+r.tmp+"℃");
+if(r.mls!=="")ins.push("多条布設 "+lbl(MLA_OPTS,r.mla)+" "+lbl(MLS_OPTS,r.mls));
+if(num(r.c)&&+r.c!==1)ins.push("その他の補正係数×"+r.c);
+inp.push("敷設 "+ins.join("・"));
+if(+r.par>1)inp.push("並列 "+r.par+"条");
+inp.push("許容電圧降下 "+(isNum(r.t)?r.t+"%(手入力)":"自動"));
+inp.push("遮断器 "+(+r.bk>0?r.bk+"A(指定)":"自動"));
+if(r.mb)inp.push("主幹器 "+r.mb+"A");
+if(r.size!=="")inp.push("ケーブルサイズ "+szLabel(r.size)+"(指定)");
+L.push("[入力] "+inp.join(" / "));
+if(o.err&&!o.In){L.push("[結果] 計算できず: "+o.err);if(r.memo)L.push("[備考] "+r.memo);return L.join("\n")}
+res.push("負荷電流(単純和) "+f1(o.Is)+"A"+(o.hasM?"(一般 IH "+f1(o.Ih)+"A + 電動機 IM "+f1(o.Im)+"A)":""));
+res.push("設計負荷電流 "+f1(o.Id)+"A");
+res.push("遮断器 "+o.In+"A("+(o.auto?"自動で選定":"指定")+")");
+if(o.T)res.push("許容電圧降下 "+o.T+"%"+(o.tAuto?"(こう長から自動)":"")+" = "+f2(o.eA)+"V");
+if(o.err)res.push("計算できず: "+o.err);
+else{
+res.push("係数k="+(Math.round(o.k*1000)/1000)+"、電圧降下から必要な断面積 "+f1(o.needA)+"mm²"+(o.recV?" → "+szLabel(o.recV):""));
+if(o.tbl)res.push("許容電流から必要なサイズ "+(o.recA?szLabel(o.recA):"なし")+"(必要な許容電流 "+f1(o.reqA)+"A以上)");
+res.push("選定 "+wireName(r,o.size)+"(計算に使う断面積 "+AREA(o.size)+"mm²"+(+r.par>1?" ×"+r.par+"条":"")+")");
+res.push("許容電流 "+(o.amp!=null?o.amp+"A"+ampParts(spT(rr),o.size):"表なし(判定しない)"));
+res.push("電圧降下 "+f2(o.e)+"V("+f2(o.ep)+"%)");
+if(o.br)res.push("分岐選定 3m超〜8m: "+(o.br[0].size?szLabel(o.br[0].size):"表の範囲外")+"(必要"+o.br[0].req.toFixed(0)+"A)・8m超: "+(o.br[1].size?szLabel(o.br[1].size):"表の範囲外")+"(必要"+o.br[1].req.toFixed(0)+"A)");
+res.push("判定 "+(o.ok?"OK":"NG"))}
+L.push("[結果] "+res.join(" / "));
+var m=[].concat(o.warn||[],o.notes||[]);if(m.length)L.push("[アプリのメモ] "+m.join("、"));
+if(r.memo)L.push("[備考] "+r.memo);
+return L.join("\n")}
+function hvRow(o,i){
+var r=o.r,L=[],inp=[],res=[];
+L.push("■回路"+(i+1)+(r.name?": "+r.name:"")+(r.load?(r.name?" → ":": ")+r.load:""));
+inp.push("負荷 "+(isNum(r.x)?r.x+" "+r.u:"未入力")+(num(r.dm)?" ×需要率"+pct(r.dm):""));
+inp.push("力率 "+(num(r.pf)?r.pf:"0.85(空欄のため)"));
+inp.push("こう長 "+(isNum(r.l)?r.l+"m":"未入力"));
+inp.push("ケーブル "+lbl(HCT_OPTS,r.ct)+" / 敷設 "+lbl(HINS_OPTS,r.ins)+(+r.par>1?" / 並列 "+r.par+"条":""));
+if(r.tmp!=="")inp.push("周囲温度"+r.tmp+"℃");
+if(num(r.c)&&+r.c!==1)inp.push("その他の補正係数×"+r.c);
+inp.push("電圧降下の目標 "+(num(r.ht)?r.ht+"%(この回路だけ)":"共通の値"));
+if(r.size!=="")inp.push("ケーブルサイズ "+r.size+"sq(指定)");
+if(num(r.isk))inp.push("短絡電流 "+r.isk+"kA(この回路だけ)");
+if(num(r.ts))inp.push("遮断時間 "+r.ts+"秒(この回路だけ)");
+if(r.dev)inp.push("保護機器 "+r.dev+(isNum(r.dvA)?" 定格"+r.dvA+"A":"")+(isNum(r.dvK)?" "+((r.dev==="PAS"||r.dev==="LBS")?"短時間耐電流":"定格遮断電流")+r.dvK+"kA":""));
+L.push("[入力] "+inp.join(" / "));
+if(o.I==null){L.push("[結果] 計算できず: "+(o.err||""));if(r.memo)L.push("[備考] "+r.memo);return L.join("\n")}
+res.push("負荷電流 "+f1(o.I)+"A");
+res.push("短絡電流 "+o.Is+"kA・遮断時間 "+o.t+"秒 → 熱的に必要な断面積 "+f1(o.Amin)+"mm²");
+res.push("許容電流から "+(o.recA?o.recA+"sq":"なし")+"、電圧降下から "+(o.recV?o.recV+"sq":"なし")+"、熱的強度から "+(o.recT?o.recT+"sq":"なし"));
+if(o.err&&!o.size)res.push("計算できず: "+o.err);
+else{
+res.push("選定 "+hCableName(r,o.size)+"(R="+o.R+"Ω/km、X="+o.X+"Ω/km)");
+res.push("許容電流 "+(o.amp!=null?o.amp+"A":"表なし"));
+res.push("電圧降下 "+f2(o.e)+"V("+f2(o.ep)+"%、目標"+o.T+"%)");
+res.push("末端の短絡電流 "+o.IsEnd.toFixed(2)+"kA(参考)");
+res.push("判定 "+(o.ok?"OK":"NG"))}
+L.push("[結果] "+res.join(" / "));
+var m=[].concat(o.warn||[],o.notes||[]);if(m.length)L.push("[アプリのメモ] "+m.join("、"));
+if(r.memo)L.push("[備考] "+r.memo);
+return L.join("\n")}
+var SYS_LV="あなたは日本の電気設備の設計(低圧幹線)にくわしい技術者です。電圧降下計算アプリの計算結果を、第三者の目でチェックしてください。\n"+
+"# 見るところ\n"+
+"1. 入力の不自然さ: 単位や桁のまちがい(kWとkVA、mとkmなど)、電気方式と電圧の組み合わせ(単相3線式は100V、三相4線式は相電圧で入れる約束)、力率・需要率の範囲、こう長と負荷の大きさのバランス、ケーブルの種類と電気方式の組み合わせ。\n"+
+"2. 検算: 負荷電流、設計負荷電流、許容電圧降下、電圧降下、必要な断面積を、下の計算方法で数字を当てはめて確かめる。\n"+
+"3. 選定の妥当性: ケーブルサイズ・遮断器・許容電流の判定、並列条数、分岐選定。\n"+
+"4. 現場で見落としやすい点: 電動機の始動電流(このアプリは考えていない)、将来の負荷増設、周囲温度や多条布設の補正の入れ忘れが疑われるときなど。必要なときだけ。\n"+
+"# このアプリの約束(これ自体はまちがいとしない)\n"+
+"- 電圧降下は内線規程の簡易式。電流は需要率をかけた負荷電流の単純和を使う。kVAのときは力率を使わない。\n"+
+"- 単相3線式・三相4線式の電圧降下(%)は、外側線または各相と中性線の間の電圧(100Vや相電圧)に対する値。\n"+
+"- 許容電圧降下を自動にした回路は、こう長に応じて内線規程1310-1表の値(60m超は幹線と分岐の合計の値)を使う。\n"+
+"- 許容電流はアプリの表の値に補正をかけたもの。表がない組み合わせは電圧降下だけで選ぶ。";
+var SYS_HV="あなたは日本の電気設備の設計(高圧6.6kV幹線)にくわしい技術者です。高圧幹線の計算アプリの結果を、第三者の目でチェックしてください。\n"+
+"# 見るところ\n"+
+"1. 入力の不自然さ: 単位や桁のまちがい(kWとkVA、mとkm)、力率・需要率の範囲、負荷の大きさとケーブルのつり合い、短絡電流・遮断時間の値の妥当さ、保護機器の定格の入れ方。\n"+
+"2. 検算: 負荷電流、電圧降下(インピーダンス法)、短絡時の熱的強度に必要な断面積を、下の計算方法で数字を当てはめて確かめる。\n"+
+"3. 選定の妥当性: ケーブルサイズ(許容電流・電圧降下・熱的強度のうち一番太いもの)、保護機器の定格・遮断容量。\n"+
+"4. 現場で見落としやすい点: 必要なときだけ(変圧器の励磁突入電流、将来増設、ケーブルの遮へい層の短絡容量など)。\n"+
+"# このアプリの約束(これ自体はまちがいとしない)\n"+
+"- 電圧降下は e = √3・I・L・(R cosθ + X sinθ)、R・Xは導体90℃の値。高圧の電圧降下に法令の上限はないので、目標値で判定する。\n"+
+"- 熱的強度は A ≧ I・√t ÷ 134(架橋ポリエチレン・銅)。並列でも1条ごとに見る。\n"+
+"- 末端の短絡電流は参考値。";
+var cfg={
+sends:"回路名・負荷名称や備考",
+lead:"計算結果をGoogleのAI(Gemini)に送って、入力のまちがいや見落としがないか見てもらいます。いま開いているタブ(低圧・高圧)の結果を送ります。",
+qph:"例: 回路3のケーブルは細すぎない?",
+empty:"幹線の入力がまだないので、チェックするものがありません。負荷とこう長を入れて「計算する」を押してください。",
+get sys(){return MODE==="hv"?SYS_HV:SYS_LV},
+place:function(el){var host=$(MODE==="hv"?"hrt":"rt").closest(".card");if(host&&host.nextSibling!==el)host.parentNode.insertBefore(el,host.nextSibling)},
+ensure:function(){if(MODE==="hv"){if(!$("hstale").hidden)hRunCalc()}else if(!$("stale").hidden)runCalc()},
+data:function(){
+if(MODE==="hv"){var hs=LASTHOS.filter(function(o){return o.I!=null});if(!hs.length)return "";
+return "# 高圧幹線(6.6kV)の計算結果\n## 計算方法と共通条件\n"+method()+"\n## 回路ごとの入力と結果\n"+LASTHOS.map(hvRow).join("\n\n")}
+var ok=LASTOS.filter(function(o){return !(o.err&&!o.In)});if(!ok.length)return "";
+return "# 低圧幹線の電圧降下計算の結果\n## 計算方法と共通条件\n"+method()+
+"\n遮断器の標準定格(A): "+STD.join(", ")+
+"\n分岐選定: 幹線の遮断器定格の35%(分岐の長さ3m超〜8m)・55%(8m超)以上の許容電流になる最小サイズ(電技解釈第149条)。3m以下は幹線と同じ。"+
+"\n単線の断面積: 1.6mm=2.01mm²、2.0mm=3.14mm²、2.6mm=5.31mm²として計算。"+
+"\n## 回路ごとの入力と結果\n"+LASTOS.map(lvRow).join("\n\n")}};
+return cfg})();
+/* ===== AIチェック(Gemini)・共通部分 =====
+   計算結果を文字にしてGoogleのGemini APIに送り、入力のまちがいや見落としを見てもらう。
+   APIキーはこの端末のlocalStorage("gemini-key")だけに保存(現場データ・クラウド・書き出しには入れない)。
+   件名・会社名・担当者は送らない。アプリごとの違い(送る文・指示)は AICFG に書く */
+(function(){
+var KEYS="gemini-key",API="https://generativelanguage.googleapis.com/v1beta/models/";
+/* 上から順に試す。latestは新しいFlashを指す名前(モデルの入れ替わりに強い)。使えないとき・混んでいるときは次へ */
+var MODELS=["gemini-flash-latest","gemini-3.8-flash","gemini-2.5-flash"];
+var SCHEMA={type:"OBJECT",properties:{
+verdict:{type:"STRING",format:"enum",enum:["問題なし","要確認","誤りの疑い"]},
+summary:{type:"STRING"},
+answer:{type:"STRING"},
+items:{type:"ARRAY",items:{type:"OBJECT",properties:{target:{type:"STRING"},level:{type:"STRING",format:"enum",enum:["誤りの疑い","要確認","参考"]},text:{type:"STRING"}},required:["target","level","text"]}}},
+required:["verdict","summary","items"]};
+var COMMON="\n\n# 返し方(JSONで返す)\n"+
+"- 形: {\"verdict\":\"…\",\"summary\":\"…\",\"answer\":\"…\",\"items\":[{\"target\":\"…\",\"level\":\"…\",\"text\":\"…\"}]}\n"+
+"- 日本語、です・ます調で、現場の人がすぐわかるように短く書く。専門用語はそのままでよい。\n"+
+"- verdict: 全体の結論。「問題なし」「要確認」「誤りの疑い」のどれか。\n"+
+"- summary: 全体のまとめを2〜3文。\n"+
+"- items: 指摘を1件ずつ。target はどの回路・配管か(例「回路2 L-2」「全体」)、level は「誤りの疑い」(計算や選定がまちがっている可能性が高い)「要確認」(入力や条件を確かめてほしい)「参考」(知っておくとよいこと)、text は2〜3文で、何がなぜ気になるか・どう確かめるか。\n"+
+"- 問題がなければ items は空でよい。指摘を無理に作らない。同じことを何度も書かない。\n"+
+"- 利用者からの質問があれば answer に答える。なければ answer は空にする。\n"+
+"- 検算は実際に数字を当てはめて行う。四捨五入・切り捨てによる差(1%程度まで)は問題にしない。\n"+
+"- 規程・法令の条番号や数値は、確かなものだけ書く。自信がないときは「〜を確認してください」と書き、断定しない。\n"+
+"- アプリの表の値(許容電流・外径・内径など)は根拠のある資料の値として受け入れる。明らかに桁がおかしいときだけ指摘する。";
+var BUSY=false,card,tick=null,GEN=0,SENT=null;
+function $a(id){return document.getElementById(id)}
+function E(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+var MEMKEY="";
+function keyGet(){var k="";try{k=localStorage.getItem(KEYS)||""}catch(e){}return k||MEMKEY}
+function keySet(v){MEMKEY=v;try{if(v)localStorage.setItem(KEYS,v);else localStorage.removeItem(KEYS)}catch(e){}}
+function keyShow(){var k=keyGet(),i=$a("aiKey");i.value="";i.placeholder=k?"保存済み(…"+k.slice(-4)+")":"APIキーを貼り付け";$a("aiDel").hidden=!k}
+function msg(t,ng){var m=$a("aiMsg");m.textContent=t||"";m.classList.toggle("ng",!!ng)}
+function kmsg(t){$a("aiKMsg").textContent=t||""}
+
+function build(){
+card=document.createElement("section");card.className="card aic";card.id="aiCard";card.setAttribute("aria-labelledby","aiH");
+card.innerHTML='<h2 id="aiH">AIチェック<span class="aitag">Gemini</span></h2>'+
+'<p class="note">'+E(AICFG.lead)+'AIもまちがえることがあるので、指摘は参考にして、最後は自分で確かめてください。</p>'+
+'<div class="f aiq"><label for="aiQ">聞きたいこと(空欄でOK)</label><input id="aiQ" type="text" autocomplete="off" placeholder="'+E(AICFG.qph)+'"></div>'+
+'<div class="aibar"><button type="button" class="btn pri" id="aiGo">AIにチェックしてもらう</button></div>'+
+'<p class="note aimsg" id="aiMsg" role="status"></p>'+
+'<div class="aiout" id="aiOut" aria-live="polite"></div>'+
+'<details class="aiset" id="aiSet"><summary>AIの設定(APIキー)</summary>'+
+'<div class="note"><p>Google AI Studio(<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>)で無料のAPIキーを作って、下に貼り付けてください。キーはこの端末の中だけに保存されます(現場データやクラウド、書き出したファイルには入りません)。</p>'+
+'<p>無料枠では、送った内容がGoogleのAIの改善に使われることがあります。件名・会社名・担当者は送りません('+E(AICFG.sends)+'は送ります)。</p></div>'+
+'<div class="aikey"><input id="aiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Gemini APIキー"><button type="button" class="mini" id="aiSave">保存</button><button type="button" class="mini" id="aiDel">消す</button></div>'+
+'<p class="note" id="aiKMsg" role="status"></p></details>';
+AICFG.place(card);
+$a("aiGo").addEventListener("click",run);
+$a("aiQ").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.isComposing){e.preventDefault();run()}});
+$a("aiSave").addEventListener("click",function(){var v=$a("aiKey").value.replace(/\s+/g,"");if(!v){kmsg("キーが入っていません。貼り付けてから「保存」を押してください。");return}keySet(v);keyShow();kmsg("保存しました。");msg("")});
+$a("aiKey").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$a("aiSave").click()}});
+$a("aiDel").addEventListener("click",function(){keySet("");keyShow();kmsg("この端末からキーを消しました。")});
+keyShow()}
+
+function render(res){
+var o=null,t=String(res.text||"").trim();
+try{o=JSON.parse(t)}catch(e){var m=t.match(/\{[\s\S]*\}/);if(m){try{o=JSON.parse(m[0])}catch(e2){}}}
+var d=new Date(),hm=d.getHours()+":"+(d.getMinutes()<10?"0":"")+d.getMinutes(),h;
+var meta='<span class="sub">'+hm+' ・ '+E(res.model)+'</span>';
+if(!o||typeof o!=="object"){h='<div class="aiv">'+meta+'</div><p class="airaw">'+E(t)+'</p>'}
+else{
+var V=String(o.verdict||"要確認"),vc=V==="問題なし"?"ok":(V==="誤りの疑い"?"ng":"wa");
+var its=Array.isArray(o.items)?o.items.filter(function(x){return x&&x.text}):[];
+var rank={"誤りの疑い":0,"要確認":1,"参考":2};its.sort(function(a,b){return (rank[a.level]!=null?rank[a.level]:3)-(rank[b.level]!=null?rank[b.level]:3)});
+h='<div class="aiv"><span class="badge '+vc+'">'+E(V)+'</span>'+meta+'</div>';
+if(o.summary)h+='<p class="ais">'+E(o.summary)+'</p>';
+if(o.answer&&String(o.answer).trim())h+='<div class="aia"><b>質問への答え</b><p>'+E(o.answer)+'</p></div>';
+if(its.length)h+='<ul class="ail">'+its.map(function(x){var c=x.level==="誤りの疑い"?"ng":(x.level==="要確認"?"wa":"");
+return '<li class="'+c+'"><div class="ait"><span class="ail-l">'+E(x.level||"参考")+'</span><b>'+E(x.target||"")+'</b></div>'+E(x.text)+'</li>'}).join("")+'</ul>'}
+h+='<p class="note aifoot">AIの指摘はまちがっていることもあります。直す前に、根拠を確かめてください。</p>';
+var out=$a("aiOut");out.innerHTML=h;out.classList.remove("stale")}
+
+function textOf(b){try{var c=b.candidates&&b.candidates[0];if(!c||!c.content||!c.content.parts)return null;
+var t=c.content.parts.filter(function(p){return p&&!p.thought&&typeof p.text==="string"}).map(function(p){return p.text}).join("");return t.trim()?t:null}catch(e){return null}}
+
+async function call(key,sys,user){
+function req(sc){var g={responseMimeType:"application/json"};if(sc)g.responseSchema=SCHEMA;return JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:g})}
+/* 返し方の指定(responseSchema)が通らないモデルのときは、指定なしでもう一度送る(形は指示文に書いてある) */
+var busy=false,last="",sc=true;
+for(var i=0;i<MODELS.length;i++){
+var m=MODELS[i],body=req(sc),ctl=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ctl)ctl.abort()},120000),res,b=null;
+try{res=await fetch(API+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:body,signal:ctl?ctl.signal:undefined,cache:"no-store",referrerPolicy:"no-referrer"})}
+catch(e){clearTimeout(to);if(e&&e.name==="AbortError")throw new Error("時間がかかりすぎたので止めました。もう一度押してみてください。");throw new Error("通信できませんでした。電波のよいところで、もう一度押してください。")}
+clearTimeout(to);
+try{b=await res.json()}catch(e){b=null}
+if(res.ok){var t=textOf(b);if(t)return {text:t,model:m};
+var fr=b&&b.candidates&&b.candidates[0]&&b.candidates[0].finishReason,pf=b&&b.promptFeedback&&b.promptFeedback.blockReason;
+if(pf||fr==="SAFETY"||fr==="PROHIBITED_CONTENT")throw new Error("AIが返事をしませんでした(内容の制限)。聞きたいことの書き方を変えてみてください。");
+last="返事が空でした";continue}
+var er=(b&&b.error)||{},em=String(er.message||""),det=JSON.stringify(er.details||"");
+if(/API_KEY_INVALID|API key not valid|API key expired/i.test(em+det))throw new Error("APIキーが正しくないようです。下の「AIの設定」から入れ直してください。");
+if(res.status===403)throw new Error("このAPIキーではGeminiが使えないようです(キーの制限やGoogle AI Studioの設定を確かめてください)。");
+if(res.status===429){busy=true;last="回数の上限";continue}
+if(res.status===400&&sc){sc=false;i--;last="400";continue}
+last=res.status+(em?" "+em.slice(0,80):"")}
+if(busy)throw new Error("無料枠の回数の上限に当たりました。1分ほど待ってから、もう一度押してください。1日の上限のときは、夕方(16〜17時ごろ)にリセットされます。");
+throw new Error("AIから返事がもらえませんでした("+last+")。少し待ってから、もう一度押してください。")}
+
+async function run(){
+if(BUSY)return;
+var key=keyGet();
+if(!key){msg("先にAPIキーを入れてください(下の「AIの設定」)。");var s=$a("aiSet");s.open=true;setTimeout(function(){$a("aiKey").focus()},50);return}
+AICFG.ensure();
+var data=AICFG.data();
+if(!data){msg(AICFG.empty,true);return}
+var q=$a("aiQ").value.trim();
+var user=data+(q?"\n\n# 利用者からの質問\n"+q:"\n\n# 利用者からの質問\n(なし)");
+BUSY=true;var g=GEN,btn=$a("aiGo"),t0=Date.now();btn.disabled=true;
+function upd(){var s=Math.round((Date.now()-t0)/1000);btn.textContent="チェック中… "+s+"秒";}
+upd();tick=setInterval(upd,1000);msg("計算結果を送って、AIに見てもらっています(30秒〜1分ほど)。");
+try{var res=await call(key,AICFG.sys+COMMON,user);if(g===GEN){SENT=data;render(res);msg("")}}
+catch(e){if(g===GEN)msg(e&&e.message?e.message:"うまくいきませんでした。もう一度押してください。",true)}
+finally{clearInterval(tick);tick=null;BUSY=false;btn.disabled=false;btn.textContent="AIにチェックしてもらう"}}
+
+/* 入力が変わったら、前のAIの結果を薄くする。現場やタブを切り替えたら消す */
+window.aiStale=function(){var o=$a("aiOut");if(o&&o.innerHTML)o.classList.add("stale")};
+window.aiReset=function(){if(!card)return;GEN++;SENT=null;$a("aiOut").innerHTML="";msg("")};
+/* 計算し直したとき、AIに送った結果と同じなら薄くしない */
+window.aiSync=function(){var o=$a("aiOut");if(!o||!o.innerHTML||SENT==null)return;var d="";try{d=AICFG.data()}catch(e){}o.classList.toggle("stale",d!==SENT)};
+window.aiPlace=function(){if(card)AICFG.place(card)};
+build();
+})();
 </script>
 
 </body></html>
