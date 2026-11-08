@@ -283,6 +283,16 @@ input[type=checkbox],input[type=radio]{accent-color:var(--acc)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .aic{--wa:#f0b45a}}
 :root[data-theme="dark"] .aic{--wa:#f0b45a}
 .aic h2{display:flex;align-items:center;gap:8px}
+details.aic>summary{list-style:none;display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-size:1rem}
+details.aic>summary::-webkit-details-marker{display:none}
+details.aic>summary h2{margin:0;flex:1;min-width:0}
+.aisb .badge{font-size:.72rem}
+.aisb.stale{opacity:.45}
+.aich{flex:none;width:2.4em;height:2.4em;margin:-8px -8px -8px 0;display:grid;place-items:center;color:var(--acc)}
+.aich svg{width:20px;height:20px;transition:transform .15s}
+details.aic[open]>summary .aich svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.aich svg{transition:none}}
+.aibody{margin-top:10px}
 .aitag{font-size:.7rem;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:0 8px;letter-spacing:0}
 .aic .aiq{margin-top:10px}
 .aibar{display:flex;gap:10px;margin-top:10px}
@@ -319,6 +329,16 @@ input[type=checkbox],input[type=radio]{accent-color:var(--acc)}
 .aikey{display:flex;gap:8px;margin-top:8px}
 .aikey input{flex:1}
 .aikey .mini{flex:none;height:2.5rem}
+/* 計算結果のカード(折りたたみ) */
+details.rcard>summary{list-style:none;display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-size:1rem}
+details.rcard>summary::-webkit-details-marker{display:none}
+details.rcard>summary h2{margin:0;flex:none}
+details.rcard>summary .mini{flex:none}
+.rst{flex:1;min-width:0;font-size:.8rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rst.stale{opacity:.45}
+.rst .ng,.rst .ok{font-weight:700}
+details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
+.rbody{margin-top:10px}
 </style>
 </head>
 <body>
@@ -389,14 +409,14 @@ input[type=checkbox],input[type=radio]{accent-color:var(--acc)}
 </div>
 </details>
 </div><div class="colR">
-<section class="card" aria-live="polite">
-<div class="rh" style="grid-template-columns:minmax(0,1fr) auto;margin-bottom:8px"><h2 style="margin:0">計算結果</h2><button type="button" class="mini" id="copy">表をコピー</button></div>
+<details class="card rcard" id="rcL" open>
+<summary><h2>計算結果</h2><span class="rst" id="rstL"></span><button type="button" class="mini" id="copy">表をコピー</button></summary><div class="rbody" aria-live="polite">
 <p class="stale-msg" id="stale" hidden>入力が変わりました。「計算する」を押すと表と計算書が更新されます。</p>
 <div class="tw" id="rt"></div>
 <p class="note" style="margin-top:8px">分岐選定は、幹線ブレーカー定格の35%(3m超〜8m)・55%(8m超)以上の許容電流になる最小サイズです(電技解釈第149条)。ケーブルは幹線と同じ種別・敷設条件の前提です。</p>
 <p class="note" id="cmsg" style="margin-top:8px"></p>
 <textarea id="tsv" hidden readonly aria-label="コピー用の表"></textarea>
-</section>
+</div></details>
 
 <section class="card">
 <h2><span id="ttlL">電圧降下計算書</span>(PDF・Excel)</h2>
@@ -439,11 +459,11 @@ input[type=checkbox],input[type=radio]{accent-color:var(--acc)}
 </div>
 </details>
 </div><div class="colR">
-<section class="card" aria-live="polite">
-<h2>計算結果</h2>
+<details class="card rcard" id="rcH" open>
+<summary><h2>計算結果</h2><span class="rst" id="rstH"></span></summary><div class="rbody" aria-live="polite">
 <p class="stale-msg" id="hstale" hidden>入力が変わりました。「計算する」を押すと表と計算書が更新されます。</p>
 <div class="tw" id="hrt"></div>
-</section>
+</div></details>
 <section class="card">
 <h2><span id="ttlH">高圧幹線計算書</span>(PDF・Excel)</h2>
 <div class="outset"><div class="f ttl"><label for="pjHTitle">題名(タップで編集できます)</label><input id="pjHTitle" placeholder="高圧幹線計算書" autocomplete="off"></div><div class="f"><label for="outFontH">出力のフォント(PDF・Excel)</label><select id="outFontH" class="outfsel"></select></div></div>
@@ -671,7 +691,7 @@ h+='</tbody></table>';
 $("rt").innerHTML=h;LASTTSV=tsv.join("\n");
 eachCard(function(c,r){if(r)c.querySelector(".sum").innerHTML=sumHTML(r)});
 $("rt").classList.remove("stale");$("pv").classList.remove("stale");$("stale").hidden=true;
-renderPreview();if(window.aiSync)aiSync()}
+renderPreview();if(window.resSum)resSum("rstL",LASTOS,"回路",true);if(window.aiSync)aiSync()}
 
 /* ===== 幹線計算書(紙面) ===== */
 var PAPER={a4:{w:1123,h:794,mm:[297,210],sc:2.6},a3:{w:1123,h:794,mm:[420,297],sc:3.6}};
@@ -890,7 +910,7 @@ $(p.p+"Prev").addEventListener("click",function(){S.go(S.i-1)});
 $(p.p+"Next").addEventListener("click",function(){S.go(S.i+1)});
 return S}
 var LS=Strip({box:"rows",p:"r",list:function(){return rows}}),HS=Strip({box:"hrows",p:"hr",list:function(){return rowsH}});
-function mark(){$("rt").classList.add("stale");$("pv").classList.add("stale");$("stale").hidden=false;if(window.aiStale)aiStale()}
+function mark(){$("rt").classList.add("stale");$("pv").classList.add("stale");$("stale").hidden=false;if(window.resStale)resStale("rstL");if(window.aiStale)aiStale()}
 function snap(){return {mat:MAT,alr:$("alr").value,cus:CUS,rows:rows,rowsH:rowsH,nextId:nextId,pj:PJ}}
 function save(){siteTouch()}
 function rd(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
@@ -958,8 +978,8 @@ if(act==="del"){rows.splice(i,1);if(!rows.length)rows.push(defRow());renderRows(
 $("add").addEventListener("click",function(){rows.push(defRow());renderRows();mark();save();LS.go(rows.length-1)});
 function setCl(card,r,v){r.cl=v;card.classList.toggle("cl",v);var t=card.querySelector('[data-act="tog"]');t.setAttribute("aria-label",v?"ひらく":"たたむ");t.setAttribute("aria-expanded",String(!v))}
 function eachCard(fn){Array.prototype.forEach.call($("rows").querySelectorAll(".rc"),function(c){fn(c,rowById(c.getAttribute("data-id")))})}
-document.addEventListener("toggle",function(e){var d=e.target;if(d&&d.tagName==="DETAILS"&&d.open)revealTop(d)},true);
-$("go").addEventListener("click",function(){runCalc();$("rt").scrollIntoView({block:"start"})});
+document.addEventListener("toggle",function(e){var d=e.target;if(d&&d.tagName==="DETAILS"&&d.open&&!d.hasAttribute("data-init"))revealTop(d)},true);
+$("go").addEventListener("click",function(){if(window.resOpen)resOpen("rcL");runCalc();$("rt").scrollIntoView({block:"start"})});
 $("mCu").addEventListener("click",function(){setMat("cu")});
 $("mAl").addEventListener("click",function(){setMat("al")});
 $("alr").addEventListener("input",function(){mark();save()});
@@ -1038,7 +1058,7 @@ h+='<td class="memo">'+esc(mt.join(" / "))+'</td></tr>'});
 h+='</tbody></table>';
 $("hrt").innerHTML=h;$("hrt").classList.remove("stale");$("hpv").classList.remove("stale");$("hstale").hidden=true;
 hEach(function(c,r){if(r)c.querySelector(".sum").innerHTML=hSumHTML(r)});
-if(MODE==="hv")renderPreview();if(window.aiSync)aiSync()}
+if(MODE==="hv")renderPreview();if(window.resSum)resSum("rstH",LASTHOS,"回路",true);if(window.aiSync)aiSync()}
 function hCols(){return [["No.",2.6],["幹線番号",7],["負荷名称",8],["こう長<br>L[m]",4.2],["負荷容量<br>(×需要率)",7.5],["力率<br>cosθ",4],["負荷電流<br>I[A]",5],["ケーブル<br>種別・太さ",9.5],["敷設",4.5],["許容電流<br>[A]",5],["R / X<br>[Ω/km]",6],["電圧降下<br>e[V]<br>[%]",5.4],["目標<br>[%]",3.6],["短絡電流<br>[kA]<br>遮断時間[s]",6],["熱的必要<br>断面積<br>[mm²]",5.4],["保護機器<br>定格[A]<br>遮断[kA]",7.5],["判定",3.6],["備考",10]]}
 function hSheetRow(o,i){var r=o.r,bad=!o.size||o.err,t=[];
 t.push(['',i+1]);t.push(['l',esc(r.name)]);t.push(['l',esc(r.load)]);t.push(['n',isNum(r.l)?esc(r.l):"-"]);
@@ -1095,7 +1115,7 @@ card.querySelector(".cs").textContent="補正(周囲温度): "+(cp.length?cp.joi
 card.querySelector(".sum").innerHTML=hSumHTML(r)}
 function hEach(fn){Array.prototype.forEach.call($("hrows").querySelectorAll(".rc"),function(c){fn(c,hById(c.getAttribute("data-id")))})}
 function hRender(){$("hrows").innerHTML=rowsH.map(function(r,i){return hRowHTML(r,i+1)}).join("");hEach(function(c,r){hRefresh(c,r)});HS.chips()}
-function hMark(){$("hrt").classList.add("stale");$("hpv").classList.add("stale");$("hstale").hidden=false;if(window.aiStale)aiStale()}
+function hMark(){$("hrt").classList.add("stale");$("hpv").classList.add("stale");$("hstale").hidden=false;if(window.resStale)resStale("rstH");if(window.aiStale)aiStale()}
 function hOnField(e){var t=e.target,f=t.getAttribute&&t.getAttribute("data-f");if(!f)return;var card=t.closest(".rc"),r=hById(card.getAttribute("data-id"));if(!r)return;r[f]=t.value;if(f==="name")HS.name(r);hRefresh(card,r);hMark();save()}
 $("hrows").addEventListener("input",hOnField);$("hrows").addEventListener("change",hOnField);
 $("hrows").addEventListener("click",function(e){var b=e.target.closest("button[data-act]");if(!b)return;
@@ -1104,7 +1124,7 @@ if(act==="tog"||act==="open"){var v=act==="open"?false:!r.cl;r.cl=v;card.classLi
 if(act==="dup"){var c=hNorm(r);c.id=nextId++;c.name=(r.name||"幹線"+(i+1))+"(複製)";c.cl=false;rowsH.splice(i+1,0,c);hRender();hMark();save();HS.go(i+1);return}
 if(act==="del"){rowsH.splice(i,1);if(!rowsH.length)rowsH.push(hDefRow());hRender();hMark();save();HS.go(Math.min(i,rowsH.length-1),true)}});
 $("hadd").addEventListener("click",function(){rowsH.push(hDefRow());hRender();hMark();save();HS.go(rowsH.length-1)});
-$("hgo").addEventListener("click",function(){hRunCalc();$("hrt").scrollIntoView({block:"start"})});
+$("hgo").addEventListener("click",function(){if(window.resOpen)resOpen("rcH");hRunCalc();$("hrt").scrollIntoView({block:"start"})});
 [["hIs","hIs"],["hT","hT"],["hTg","hTg"]].forEach(function(p){$(p[0]).addEventListener("input",function(){PJ[p[1]]=$(p[0]).value;save();hMark()})});
 $("hHz").addEventListener("change",function(){PJ.hHz=$("hHz").value;save();hRunCalc()});
 function setMode(m,quiet){MODE=m;PJ.mode=m;$("lvView").hidden=m!=="lv";$("hvView").hidden=m!=="hv";$("tabLv").setAttribute("aria-selected",String(m==="lv"));(m==="hv"?HS:LS).set((m==="hv"?HS:LS).i);$("tabHv").setAttribute("aria-selected",String(m==="hv"));if(!quiet)save();renderPreview();if(window.aiReset){aiReset();aiPlace()}}
@@ -1855,8 +1875,9 @@ function msg(t,ng){var m=$a("aiMsg");m.textContent=t||"";m.classList.toggle("ng"
 function kmsg(t){$a("aiKMsg").textContent=t||""}
 
 function build(){
-card=document.createElement("section");card.className="card aic";card.id="aiCard";card.setAttribute("aria-labelledby","aiH");
-card.innerHTML='<h2 id="aiH">AIチェック<span class="aitag">Gemini</span></h2>'+
+/* 折りたためるカード。開いているかどうかはこの端末に覚えておく(はじめは閉じている) */
+card=document.createElement("details");card.className="card aic";card.id="aiCard";
+card.innerHTML='<summary><h2>AIチェック<span class="aitag">Gemini</span></h2><span class="aisb" id="aiSB"></span><span class="aich" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary><div class="aibody">'+
 '<p class="note">'+E(AICFG.lead)+'AIもまちがえることがあるので、指摘は参考にして、最後は自分で確かめてください。</p>'+
 '<div class="f aiq"><label for="aiQ">聞きたいこと(空欄でOK)</label><input id="aiQ" type="text" autocomplete="off" placeholder="'+E(AICFG.qph)+'"></div>'+
 '<div class="aibar"><button type="button" class="btn pri" id="aiGo">AIにチェックしてもらう</button></div>'+
@@ -1866,7 +1887,11 @@ card.innerHTML='<h2 id="aiH">AIチェック<span class="aitag">Gemini</span></h2
 '<div class="note"><p>Google AI Studio(<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>)で無料のAPIキーを作って、下に貼り付けてください。キーはこの端末の中だけに保存されます(現場データやクラウド、書き出したファイルには入りません)。</p>'+
 '<p>無料枠では、送った内容がGoogleのAIの改善に使われることがあります。件名・会社名・担当者は送りません('+E(AICFG.sends)+'は送ります)。</p></div>'+
 '<div class="aikey"><input id="aiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Gemini APIキー"><button type="button" class="mini" id="aiSave">保存</button><button type="button" class="mini" id="aiDel">消す</button></div>'+
-'<p class="note" id="aiKMsg" role="status"></p></details>';
+'<p class="note" id="aiKMsg" role="status"></p></details></div>';
+var op=false;try{op=localStorage.getItem("ai-open")==="1"}catch(e){}
+/* data-init: 起動時に開いた状態へ戻すときは、画面を動かさない */
+if(op){card.setAttribute("data-init","1");card.open=true}
+card.addEventListener("toggle",function(e){if(e.target!==card)return;card.removeAttribute("data-init");try{localStorage.setItem("ai-open",card.open?"1":"0")}catch(err){}});
 AICFG.place(card);
 $a("aiGo").addEventListener("click",run);
 $a("aiQ").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.isComposing){e.preventDefault();run()}});
@@ -1880,9 +1905,9 @@ var o=null,t=String(res.text||"").trim();
 try{o=JSON.parse(t)}catch(e){var m=t.match(/\{[\s\S]*\}/);if(m){try{o=JSON.parse(m[0])}catch(e2){}}}
 var d=new Date(),hm=d.getHours()+":"+(d.getMinutes()<10?"0":"")+d.getMinutes(),h;
 var meta='<span class="sub">'+hm+' ・ '+E(res.model)+'</span>';
-if(!o||typeof o!=="object"){h='<div class="aiv">'+meta+'</div><p class="airaw">'+E(t)+'</p>'}
+var V="",vc="";if(!o||typeof o!=="object"){h='<div class="aiv">'+meta+'</div><p class="airaw">'+E(t)+'</p>'}
 else{
-var V=String(o.verdict||"要確認"),vc=V==="問題なし"?"ok":(V==="誤りの疑い"?"ng":"wa");
+V=String(o.verdict||"要確認");vc=V==="問題なし"?"ok":(V==="誤りの疑い"?"ng":"wa");
 var its=Array.isArray(o.items)?o.items.filter(function(x){return x&&x.text}):[];
 var rank={"誤りの疑い":0,"要確認":1,"参考":2};its.sort(function(a,b){return (rank[a.level]!=null?rank[a.level]:3)-(rank[b.level]!=null?rank[b.level]:3)});
 h='<div class="aiv"><span class="badge '+vc+'">'+E(V)+'</span>'+meta+'</div>';
@@ -1891,7 +1916,9 @@ if(o.answer&&String(o.answer).trim())h+='<div class="aia"><b>質問への答え<
 if(its.length)h+='<ul class="ail">'+its.map(function(x){var c=x.level==="誤りの疑い"?"ng":(x.level==="要確認"?"wa":"");
 return '<li class="'+c+'"><div class="ait"><span class="ail-l">'+E(x.level||"参考")+'</span><b>'+E(x.target||"")+'</b></div>'+E(x.text)+'</li>'}).join("")+'</ul>'}
 h+='<p class="note aifoot">AIの指摘はまちがっていることもあります。直す前に、根拠を確かめてください。</p>';
-var out=$a("aiOut");out.innerHTML=h;out.classList.remove("stale")}
+var out=$a("aiOut");out.innerHTML=h;out.classList.remove("stale");
+/* 閉じていても結論がわかるように、見出しの横にも出す */
+var sb=$a("aiSB");sb.innerHTML=(o&&typeof o==="object")?'<span class="badge '+vc+'">'+E(V)+'</span>':"";sb.classList.remove("stale")}
 
 function textOf(b){try{var c=b.candidates&&b.candidates[0];if(!c||!c.content||!c.content.parts)return null;
 var t=c.content.parts.filter(function(p){return p&&!p.thought&&typeof p.text==="string"}).map(function(p){return p.text}).join("");return t.trim()?t:null}catch(e){return null}}
@@ -1936,12 +1963,32 @@ catch(e){if(g===GEN)msg(e&&e.message?e.message:"うまくいきませんでし�
 finally{clearInterval(tick);tick=null;BUSY=false;btn.disabled=false;btn.textContent="AIにチェックしてもらう"}}
 
 /* 入力が変わったら、前のAIの結果を薄くする。現場やタブを切り替えたら消す */
-window.aiStale=function(){var o=$a("aiOut");if(o&&o.innerHTML)o.classList.add("stale")};
-window.aiReset=function(){if(!card)return;GEN++;SENT=null;$a("aiOut").innerHTML="";msg("")};
+window.aiStale=function(){var o=$a("aiOut");if(o&&o.innerHTML){o.classList.add("stale");$a("aiSB").classList.add("stale")}};
+window.aiReset=function(){if(!card)return;GEN++;SENT=null;$a("aiOut").innerHTML="";$a("aiSB").innerHTML="";msg("")};
 /* 計算し直したとき、AIに送った結果と同じなら薄くしない */
-window.aiSync=function(){var o=$a("aiOut");if(!o||!o.innerHTML||SENT==null)return;var d="";try{d=AICFG.data()}catch(e){}o.classList.toggle("stale",d!==SENT)};
+window.aiSync=function(){var o=$a("aiOut");if(!o||!o.innerHTML||SENT==null)return;var d="";try{d=AICFG.data()}catch(e){}o.classList.toggle("stale",d!==SENT);$a("aiSB").classList.toggle("stale",d!==SENT)};
 window.aiPlace=function(){if(card)AICFG.place(card)};
 build();
+})();
+window.resInit=function(){resSum("rstL",LASTOS,"回路",true);resSum("rstH",LASTHOS,"回路",true)};
+/* ===== 計算結果のカードを折りたためるようにする =====
+   開いているかどうかはこの端末に覚えておく(はじめは開いている)。閉じていても見出しの横に件数とNGの数を出す */
+(function(){
+var CH='<span class="aich" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+Array.prototype.forEach.call(document.querySelectorAll("details.rcard"),function(d){
+d.querySelector("summary").insertAdjacentHTML("beforeend",CH);
+var k="fold-"+d.id,v=null;try{v=localStorage.getItem(k)}catch(e){}
+if(v==="0")d.open=false;
+d.addEventListener("toggle",function(e){if(e.target!==d)return;try{localStorage.setItem(k,d.open?"1":"0")}catch(err){}})});
+/* 見出しの中の「表をコピー」を押しても、開け閉めしない */
+Array.prototype.forEach.call(document.querySelectorAll("details.rcard>summary button"),function(b){b.addEventListener("click",function(e){e.preventDefault()})});
+window.resOpen=function(id){var d=document.getElementById(id);if(d&&!d.open)d.open=true};
+window.resStale=function(id){var s=document.getElementById(id);if(s)s.classList.add("stale")};
+window.resSum=function(id,os,unit,judge){var s=document.getElementById(id);if(!s)return;
+var n=os.length,ng=0,er=0;os.forEach(function(o){if(o.err)er++;else if(judge&&o.ok===false)ng++});
+var a=[n+unit];if(ng)a.push('<span class="ng">NG '+ng+'</span>');if(er)a.push('<span class="ng">要確認 '+er+'</span>');if(judge&&n&&!ng&&!er&&os.some(function(o){return o.ok===true}))a.push('<span class="ok">すべてOK</span>');
+s.innerHTML=a.join(" ・ ");s.classList.remove("stale")};
+if(window.resInit)resInit();
 })();
 </script>
 
