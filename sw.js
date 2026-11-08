@@ -3,7 +3,7 @@
      (ブラウザの一時保存を通さず、毎回サーバーに新しい版がないか確かめる。更新がすぐ届くように)
    - 部品(アイコン・PDF作成ライブラリ・フォント): 一度読み込んだら保存したものを使う
    アプリを更新したときは CACHE の番号を1つ上げる */
-const CACHE = "vd-calc-16";
+const CACHE = "vd-calc-17";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./sjis.js"];
 const LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
