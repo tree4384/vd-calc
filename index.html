@@ -1855,14 +1855,17 @@ return cfg})();
    - 要約: ひと目でわかるまとめ。速さ優先(軽いモデルから、送る文も短く)
    - チェック: 入力のまちがい・検算・見落としを見てもらう(根拠の文まで送る)
    どちらも考える量(thinking)は少なめに指定する(指定しないと長く考えて1分以上かかることがある)。
+   返事は少しずつ(ストリーミングで)受け取り、遅いモデルは早めにあきらめて次のモデルで試す。
    APIキーはこの端末のlocalStorage("gemini-key")だけに保存(現場データ・クラウド・書き出しには入れない)。
    件名・会社名・担当者は送らない。アプリごとの違い(送る文・指示)は AICFG に書く */
 (function(){
 var KEYS="gemini-key",API="https://generativelanguage.googleapis.com/v1beta/models/";
-/* 上から順に試す。latestはその種類の新しいモデルを指す名前(入れ替わりに強い)。使えないとき・混んでいるときは次へ */
+/* 上から順に試す。安定版を先に、latest(その種類の新しいモデルを指す名前。入れ替わりに強い)はあとに。使えないとき・混んでいるとき・遅いときは次へ
+   first: 最初の文字が来るまで待つ時間 / stall: 途中で止まったとみなす時間 / total: 全体で待つ時間(ミリ秒)
+   maxTok: AIが出す量の上限 / maxChars: これより長くなったら、同じことをくり返しているとみなして打ち切る */
 var MODE={
-sum:{name:"要約",btn:"要約する",busy:"要約中…",wait:"計算結果を送って、AIにまとめてもらっています。",timeout:60000,
-models:["gemini-flash-lite-latest","gemini-flash-latest","gemini-3.8-flash","gemini-2.5-flash"],
+sum:{name:"要約",btn:"要約する",busy:"要約中…",wait:"計算結果を送って、AIにまとめてもらっています。",first:20000,stall:15000,total:75000,maxTok:4096,maxChars:8000,
+models:["gemini-3.5-flash-lite","gemini-3.8-flash","gemini-flash-lite-latest","gemini-flash-latest"],
 schema:{type:"OBJECT",properties:{summary:{type:"STRING"},points:{type:"ARRAY",items:{type:"STRING"}},cautions:{type:"ARRAY",items:{type:"STRING"}}},required:["summary","points","cautions"]},
 common:"\n\n# 返し方(JSONで返す)\n"+
 "- 形: {\"summary\":\"…\",\"points\":[\"…\"],\"cautions\":[\"…\"]}\n"+
@@ -1871,8 +1874,8 @@ common:"\n\n# 返し方(JSONで返す)\n"+
 "- cautions: NG・要確認・アプリのメモ・備考にある注意だけを短く。なければ空の配列。\n"+
 "- 計算し直したり、良し悪しを判断したりしない。データの数字と判定をそのまま使い、データにないことは書かない。\n"+
 "- 利用者からのひとこと(長さ・言い方・誰に見せるか)があれば、それに合わせる。"},
-chk:{name:"チェック",btn:"チェックする",busy:"チェック中…",wait:"計算結果を送って、AIに見てもらっています(20〜40秒ほど)。",timeout:90000,
-models:["gemini-flash-latest","gemini-3.8-flash","gemini-2.5-flash"],
+chk:{name:"チェック",btn:"チェックする",busy:"チェック中…",wait:"計算結果を送って、AIに見てもらっています(20〜40秒ほど)。",first:45000,stall:20000,total:120000,maxTok:8192,maxChars:16000,
+models:["gemini-3.8-flash","gemini-3.6-flash","gemini-flash-latest"],
 schema:{type:"OBJECT",properties:{
 verdict:{type:"STRING",format:"enum",enum:["問題なし","要確認","誤りの疑い"]},
 summary:{type:"STRING"},answer:{type:"STRING"},
@@ -1968,34 +1971,92 @@ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeT
 function textOf(b){try{var c=b.candidates&&b.candidates[0];if(!c||!c.content||!c.content.parts)return null;
 var t=c.content.parts.filter(function(p){return p&&!p.thought&&typeof p.text==="string"}).map(function(p){return p.text}).join("");return t.trim()?t:null}catch(e){return null}}
 
-/* 考える量を少なめにする指定。2.5は数(thinkingBudget)、3以降は段階(thinkingLevel)で指定する */
-function think(m,k){return /^gemini-2\./.test(m)?{thinkingBudget:k==="sum"?0:1024}:{thinkingLevel:"low"}}
-async function call(k,key,sys,user){
-var M=MODE[k];
+/* 考える量を少なめにする指定。3以降は段階(thinkingLevel)、2.5は数(thinkingBudget)で指定する。要約はいちばん少なく */
+function think(m,k){return /^gemini-2\./.test(m)?{thinkingBudget:k==="sum"?0:1024}:{thinkingLevel:k==="sum"?"minimal":"low"}}
+/* 返事の文字のうち、最初の { に対応する } が来たら、その次の位置を返す(まだなら -1) */
+function closedAt(t){var d=0,st=false,es=false,on=false;
+for(var i=0;i<t.length;i++){var c=t.charAt(i);
+if(st){if(es)es=false;else if(c==="\\")es=true;else if(c==='"')st=false;continue}
+if(c==='"'){if(on)st=true}else if(c==="{"){on=true;d++}else if(c==="}"&&on){d--;if(d===0)return i+1}}
+return -1}
+function short(m){return String(m).replace(/^gemini-/,"")}
+
+/* 1つのモデルに1回送る。返事は少しずつ(ストリーミングで)受け取る。
+   最初の文字が M.first ミリ秒来ない・途中で M.stall ミリ秒止まる・全体の残り時間がなくなる、のどれかで打ち切る。
+   返事のJSONが閉じたら、その先は待たない(閉じたあとも空白などを延々と出し続けることがあるため)。
+   結果: {text} / うまくいかないとき {status, note, why} / すぐやめるべきとき {fatal} */
+async function once(m,body,key,M,left,prog){
+var ctl=new AbortController(),why="",tm=null,got=false,rd=null,done=false,
+text="",fin="",blk="",err=null,buf="",raw="",seen=false,dec=new TextDecoder();
+function arm(ms,w){clearTimeout(tm);var l=left();if(l<ms){ms=l;w="total"}tm=setTimeout(function(){why=w;try{ctl.abort()}catch(e){}},Math.max(0,ms))}
+function gone(){return {why:why,note:why==="first"?Math.round(M.first/1000)+"秒返事なし":why==="stall"?"途中で止まった":why==="long"?"返事が長すぎ":"時間切れ"}}
+function feed(s){var o;try{o=JSON.parse(s)}catch(e){return}
+if(Array.isArray(o))o=o[0];if(!o||typeof o!=="object")return;
+if(o.error){err=o.error;return}
+if(o.promptFeedback&&o.promptFeedback.blockReason)blk=o.promptFeedback.blockReason;
+var c=o.candidates&&o.candidates[0];if(!c)return;if(c.finishReason)fin=c.finishReason;
+var ps=c.content&&c.content.parts;if(ps)ps.forEach(function(p){if(p&&!p.thought&&typeof p.text==="string")text+=p.text})}
+/* 届いた分を行に分けて、「data: {…}」の行を読む。最後の行は続きが来るかもしれないので取っておく */
+function lines(s,end){buf+=s;if(!seen&&raw.length<200000)raw+=s;var a=buf.split(/\r?\n/);buf=end?"":a.pop();
+a.forEach(function(l){if(/^data:/.test(l)){seen=true;feed(l.slice(5).trim())}})}
+arm(M.first,"first");
+var res;
+try{res=await fetch(API+m+":streamGenerateContent?alt=sse",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:body,signal:ctl.signal,cache:"no-store",referrerPolicy:"no-referrer"})}
+catch(e){clearTimeout(tm);if(why)return gone();return {fatal:"通信できませんでした。電波のよいところで、もう一度押してください。"}}
+if(!res.ok){var tx="",b=null;try{tx=await res.text()}catch(e){}clearTimeout(tm);if(why)return gone();
+try{b=JSON.parse(tx)}catch(e){}if(Array.isArray(b))b=b[0];
+var er=(b&&b.error)||{},em=String(er.message||""),det=JSON.stringify(er.details||"");
+if(/API_KEY_INVALID|API key not valid|API key expired/i.test(em+det))return {fatal:"APIキーが正しくないようです。下の「AIの設定」から入れ直してください。"};
+if(res.status===403)return {fatal:"このAPIキーではGeminiが使えないようです(キーの制限やGoogle AI Studioの設定を確かめてください)。"};
+return {status:res.status,note:res.status===429?"回数の上限":res.status+(em?" "+em.slice(0,60):"")}}
+try{
+if(res.body&&res.body.getReader){rd=res.body.getReader();
+for(;;){var r=await rd.read();if(r.done)break;
+var n0=text.length;lines(dec.decode(r.value,{stream:true}),false);
+if(text.length>n0){
+if(!got){got=true;if(prog)prog({stage:"write",model:m})}
+arm(M.stall,"stall");
+var ce=closedAt(text);if(ce>0){text=text.slice(0,ce);done=true;break}
+if(text.length>M.maxChars){why="long";break}}}}
+else lines(await res.text(),false);
+if(!done&&!why)lines(dec.decode(),true)}
+catch(e){clearTimeout(tm);if(why)return gone();return {note:"途中で切れた"}}
+clearTimeout(tm);
+/* 読むのをやめたら、つながりも切る(残りを受け取らない) */
+if(rd&&(done||why)){try{rd.cancel().catch(function(){})}catch(e){}try{ctl.abort()}catch(e){}}
+if(why)return gone();
+/* SSEの形で来なかったとき(ふつうのJSONで返ってきたとき)も読めるようにする */
+if(!seen&&raw.trim())feed(raw.trim());
+if(err){var c2=err.code||0,m2=String(err.message||"");if(c2===429||/RESOURCE_EXHAUSTED/.test(String(err.status||"")))return {status:429,note:"回数の上限"};return {status:c2,note:"エラー "+c2+(m2?" "+m2.slice(0,60):"")}}
+if(blk||fin==="SAFETY"||fin==="PROHIBITED_CONTENT")return {fatal:"AIが返事をしませんでした(内容の制限)。ひとことの書き方を変えてみてください。"};
+if(text.trim())return {text:text};
+return {note:"返事が空でした"}}
+
+/* モデルを上から順に試す。遅い・混んでいる・使えないときは次のモデルへ。全体の時間は M.total まで */
+async function call(k,key,sys,user,prog){
+var M=MODE[k],T0=Date.now();
+function left(){return M.total-(Date.now()-T0)}
 /* th: 考える量の指定、sc: 返し方の形(responseSchema)の指定。
    モデルによって通らないときは、th → sc の順に外して同じモデルでもう一度送る(形は指示文にも書いてある) */
-function req(m,th,sc){var g={responseMimeType:"application/json"};if(sc)g.responseSchema=M.schema;if(th)g.thinkingConfig=think(m,k);
+function req(m,th,sc){var g={responseMimeType:"application/json",maxOutputTokens:M.maxTok};if(sc)g.responseSchema=M.schema;if(th)g.thinkingConfig=think(m,k);
 return JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:g})}
-var busy=false,last="",th=true,sc=true;
+var busy=false,slow=false,log=[],th=true,sc=true,tried=0;
 for(var i=0;i<M.models.length;i++){
-var m=M.models[i],body=req(m,th,sc),ctl=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ctl)ctl.abort()},M.timeout),res,b=null;
-try{res=await fetch(API+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:body,signal:ctl?ctl.signal:undefined,cache:"no-store",referrerPolicy:"no-referrer"})}
-catch(e){clearTimeout(to);if(e&&e.name==="AbortError")throw new Error("AIの返事に時間がかかりすぎたので止めました("+Math.round(M.timeout/1000)+"秒)。少し待ってから、もう一度押してみてください。");throw new Error("通信できませんでした。電波のよいところで、もう一度押してください。")}
-clearTimeout(to);
-try{b=await res.json()}catch(e){b=null}
-if(res.ok){var t=textOf(b);if(t)return {text:t,model:m};
-var fr=b&&b.candidates&&b.candidates[0]&&b.candidates[0].finishReason,pf=b&&b.promptFeedback&&b.promptFeedback.blockReason;
-if(pf||fr==="SAFETY"||fr==="PROHIBITED_CONTENT")throw new Error("AIが返事をしませんでした(内容の制限)。ひとことの書き方を変えてみてください。");
-last=m+": 返事が空でした";continue}
-var er=(b&&b.error)||{},em=String(er.message||""),det=JSON.stringify(er.details||"");
-if(/API_KEY_INVALID|API key not valid|API key expired/i.test(em+det))throw new Error("APIキーが正しくないようです。下の「AIの設定」から入れ直してください。");
-if(res.status===403)throw new Error("このAPIキーではGeminiが使えないようです(キーの制限やGoogle AI Studioの設定を確かめてください)。");
-if(res.status===429){busy=true;last=m+": 回数の上限";continue}
-if(res.status===400&&th){th=false;i--;last=m+": 400";continue}
-if(res.status===400&&sc){sc=false;i--;last=m+": 400";continue}
-last=m+": "+res.status+(em?" "+em.slice(0,80):"")}
-if(busy)throw new Error("無料枠の回数の上限に当たりました。1分ほど待ってから、もう一度押してください。1日の上限のときは、夕方(16〜17時ごろ)にリセットされます。");
-throw new Error("AIから返事がもらえませんでした("+last+")。少し待ってから、もう一度押してください。")}
+if(left()<4000)break;
+var m=M.models[i];
+if(prog)prog({stage:"wait",model:m,n:tried});tried++;
+var r=await once(m,req(m,th,sc),key,M,left,prog);
+if(r.text!=null)return {text:r.text,model:m};
+if(r.fatal)throw new Error(r.fatal);
+if(r.status===400&&th){th=false;i--;log.push(short(m)+": 400");continue}
+if(r.status===400&&sc){sc=false;i--;log.push(short(m)+": 400");continue}
+if(r.status===429)busy=true;
+if(r.why==="first"||r.why==="stall"||r.why==="total")slow=true;
+log.push(short(m)+": "+r.note)}
+var lg="("+log.join(" / ")+")";
+if(slow)throw new Error("AIの返事が来なかったので止めました("+Math.round((Date.now()-T0)/1000)+"秒)。Googleのサーバーが混んでいるのかもしれません。少し待ってから、もう一度押してください。"+lg);
+if(busy)throw new Error("無料枠の回数の上限に当たりました。1分ほど待ってから、もう一度押してください。1日の上限のときは、夕方(16〜17時ごろ)にリセットされます。"+lg);
+throw new Error("AIから返事がもらえませんでした。少し待ってから、もう一度押してください。"+lg)}
 
 async function run(k){
 if(BUSY)return;
@@ -2009,7 +2070,11 @@ var user=data+"\n\n# 利用者からの"+(k==="chk"?"質問":"ひとこと")+"\n
 BUSY=true;var g=GEN,btn=$a(k==="chk"?"aiChk":"aiSum"),t0=Date.now();$a("aiSum").disabled=true;$a("aiChk").disabled=true;
 function upd(){btn.textContent=M.busy+" "+Math.round((Date.now()-t0)/1000)+"秒"}
 upd();tick=setInterval(upd,1000);msg(M.wait);
-try{var res=await call(k,key,AICFG.sys(k)+M.common,user);if(g===GEN){SENT[k]=data;(k==="chk"?renderChk:renderSum)(res);msg("")}}
+var lastM="";
+function prog(p){if(g!==GEN)return;
+if(p.stage==="wait"){if(p.n&&p.model!==lastM)msg("別のAIモデル("+short(p.model)+")で、もう一度試しています…");else if(!p.n)msg(M.wait);lastM=p.model}
+else if(p.stage==="write")msg("AIが返事を書いています…")}
+try{var res=await call(k,key,AICFG.sys(k)+M.common,user,prog);if(g===GEN){SENT[k]=data;(k==="chk"?renderChk:renderSum)(res);msg("")}}
 catch(e){if(g===GEN)msg(e&&e.message?e.message:"うまくいきませんでした。もう一度押してください。",true)}
 finally{clearInterval(tick);tick=null;BUSY=false;$a("aiSum").disabled=false;$a("aiChk").disabled=false;btn.textContent=M.btn}}
 
