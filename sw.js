@@ -3,12 +3,14 @@
      (ブラウザの一時保存を通さず、毎回サーバーに新しい版がないか確かめる。更新がすぐ届くように)
    - 部品(アイコン・PDF作成ライブラリ・フォント): 一度読み込んだら保存したものを使う
    アプリを更新したときは CACHE の番号を1つ上げる */
-const CACHE = "vd-calc-17";
+const CACHE = "vd-calc-18";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./sjis.js"];
 const LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
 ];
+/* 画面の文字(フォント)の設定。保存がないと、電波が弱いときに画面が出るのを止めてしまう */
+const FONT_CSS = "https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap";
 
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
@@ -16,6 +18,8 @@ self.addEventListener("install", (e) => {
     await c.addAll(SHELL.map((u) => new Request(u, { cache: "reload" })));
     // ライブラリは取れなくてもインストールは止めない(ページを開いたときにも保存される)
     await Promise.all(LIBS.map((u) => c.add(new Request(u, { mode: "cors" })).catch(() => {})));
+    // フォントの設定も保存(1回開いただけでも、次から電波なしで画面がすぐ出るように)
+    await withTimeout(fetch(new Request(FONT_CSS, { mode: "no-cors" })).then((res) => c.put(FONT_CSS, res)), 8000).catch(() => {});
     await self.skipWaiting();
   })());
 });
@@ -68,8 +72,13 @@ self.addEventListener("fetch", (e) => {
     const c = await caches.open(CACHE);
     const hit = await c.match(req);
     if (hit) return hit;
-    const res = await fetch(req);
-    if (res && (res.ok || res.type === "opaque")) c.put(req, res.clone()).catch(() => {});
-    return res;
+    // 保存がないものはネットから。電波が弱くて返事が来ないときは待ち続けず、先に画面を出す
+    // (あとから届いた分は保存しておくので、次に開くときは使える)
+    const net = fetch(req).then((res) => {
+      if (res && (res.ok || res.type === "opaque")) c.put(req, res.clone()).catch(() => {});
+      return res;
+    });
+    try { e.waitUntil(net.catch(() => {})); } catch (err) {}
+    return withTimeout(net, /^(style|font)$/.test(req.destination) ? 3000 : 8000);
   })());
 });
