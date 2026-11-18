@@ -1164,6 +1164,9 @@ window.fillCus=fill})();
 
 /* ===================== 現場ごとの保存と切り替え ===================== */
 var SKEY="vd-sites-v1",CKEY="vd-sites-cur",SITES=[],CUR=null,COL=null,lsT=null,pushT={},dirty={},inflight={},firstSync=false;
+/* スマホの中の保存場所は人ごとに分ける(ログインしていないとき=いつもの場所、ログイン中=その人専用の場所) */
+var BASE_SKEY=SKEY,BASE_CKEY=CKEY,LASTU="";try{LASTU=localStorage.getItem(BASE_SKEY+"-last")||""}catch(e){}
+if(LASTU){SKEY=BASE_SKEY+":"+LASTU;CKEY=BASE_CKEY+":"+LASTU}
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function newId(){return "s"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function fixName(x){if(x&&x.name==="無題の現場")x.name="無題";return x}
@@ -1249,15 +1252,32 @@ if(ch.type==="removed"){if(l&&!dirty[id]){SITES=SITES.filter(function(s){return 
 if(!l){SITES.push({id:id,name:(b.name==="無題の現場"?"":b.name)||siteName(b.data),updated:+b.updated||0,data:b.data||{}});listChanged=true;return}
 if((+b.updated||0)>(l.updated||0)&&!dirty[id]){l.data=b.data||{};l.name=b.name||siteName(l.data);l.updated=+b.updated;listChanged=true;if(id===CUR)curChanged=true}});
 if(!firstSync&&!qs.metadata.fromCache){firstSync=true;
-var have={};qs.docs.forEach(function(d){have[d.id]=1});
+var have={};qs.docs.forEach(function(d){have[d.id]=(+(d.data()||{}).updated||0)+1});
 if(qs.docs.length){SITES=SITES.filter(function(s){if(s.fresh&&!have[s.id]){if(s.id===CUR)CUR=null;listChanged=true;return false}return true})}
-SITES.forEach(function(s){if(!have[s.id])queuePush(s.id)});
+SITES.forEach(function(s){if(!have[s.id]||(s.updated||0)>have[s.id]-1)queuePush(s.id)});
 if(!Object.keys(dirty).length)setSync("ok")}
 if(!CUR){var rest=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)});if(rest.length)openSite(rest[0].id);else{var s=addSite({},"無題");openSite(s.id)}return}
 if(curChanged)applyState(siteById(CUR).data);
 if(listChanged||curChanged){writeLocal();renderSites()}}
 /* ログイン(GitHub Pagesで開いたとき: Googleでログインして Firebase に保存) */
 var UNSUB=null;
+function switchStore(uid){
+var sk=uid?BASE_SKEY+":"+uid:BASE_SKEY,ck=uid?BASE_CKEY+":"+uid:BASE_CKEY;
+try{if(uid)localStorage.setItem(BASE_SKEY+"-last",uid);else localStorage.removeItem(BASE_SKEY+"-last")}catch(e){}
+if(sk===SKEY)return;
+writeLocal();Object.keys(pushT).forEach(function(k){clearTimeout(pushT[k])});pushT={};dirty={};inflight={};
+SKEY=sk;CKEY=ck;
+var st=rd(SKEY);SITES=st&&Array.isArray(st.list)?st.list.filter(function(x){return x&&x.id}).map(function(x){return window.fixName?fixName(x):x}):[];
+if(!SITES.length)SITES=[{id:newId(),name:"無題",updated:Date.now(),data:{},fresh:true}];
+var c="";try{c=localStorage.getItem(CKEY)||""}catch(e){}
+if(!siteById(c))c=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)})[0].id;
+CUR=c;applyState(siteById(c).data);writeLocal();renderSites()}
+/* このスマホで初めてログインした人には、それまでスマホに入っていた現場を引き継ぐ(2人目からは引き継がない) */
+function claimDevice(uid){
+var own="";try{own=localStorage.getItem(BASE_SKEY+"-owner")||""}catch(e){}
+if(own||SKEY!==BASE_SKEY)return;
+SKEY=BASE_SKEY+":"+uid;CKEY=BASE_CKEY+":"+uid;writeLocal();
+try{localStorage.removeItem(BASE_SKEY);localStorage.removeItem(BASE_CKEY);localStorage.setItem(BASE_SKEY+"-owner",uid)}catch(e){}}
 function renderAcct(u){
 if(window.claude&&window.claude.use){$("sAcct").hidden=true;return}
 $("sWho").textContent=u?"ログイン中: "+(u.email||u.displayName||""):"ログインすると、ほかのスマホでも同じ現場を開けます";
@@ -1266,7 +1286,7 @@ $("sIn").addEventListener("click",function(){
 if(!window.FBC||!FBC.ready()){setSync("prep");if(window.FBC)initCloud();return}
 var b=$("sIn");b.disabled=true;
 FBC.signIn().catch(function(e){var c=(e&&e.code)||"";if(!/popup-closed|cancelled-popup/.test(c))setSync("lerr")}).then(function(){b.disabled=false})});
-$("sOut").addEventListener("click",function(){if(window.FBC&&FBC.ready()&&confirm("ログアウトしますか？(この端末の現場はそのまま残ります)"))FBC.signOut()});
+$("sOut").addEventListener("click",function(){if(window.FBC&&FBC.ready()&&confirm("ログアウトしますか？(現場はクラウドに残っていて、もう一度ログインすれば出てきます)"))FBC.signOut()});
 async function initCloud(){
 try{
 if(window.claude&&window.claude.use){
@@ -1279,7 +1299,8 @@ renderAcct(null);
 await FBC.init(function(u){
 if(UNSUB){try{UNSUB()}catch(e){}UNSUB=null}
 COL=null;firstSync=false;renderAcct(u);
-if(!u){setSync("local");return}
+if(!u){switchStore("");setSync("local");return}
+claimDevice(u.uid);switchStore(u.uid);
 COL=FBC.col(u.uid);setSync("saving");
 UNSUB=COL.onSnapshot(onRemote,function(){COL=null;UNSUB=null;setSync("err")})})
 }catch(e){COL=null;setSync("local")}}
