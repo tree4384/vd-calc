@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="fb-cloud.js" data-col="vd"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
@@ -207,6 +208,11 @@ textarea{width:100%;min-height:6em;font:inherit;font-size:.8rem;color:var(--ink)
 .sempty{font-size:.82rem;color:var(--sub);padding:8px 10px;margin:0}
 .ssync{font-size:.74rem;color:var(--sub);margin:8px 2px 0;padding-top:8px;border-top:1px solid var(--line)}
 .ssync.ng{color:var(--ng)}
+.sacct{margin-top:6px}
+.swho{font-size:.74rem;color:var(--sub);margin:0 2px 6px;word-break:break-all}
+.sacct button{width:100%;font:inherit;font-size:.8rem;font-weight:700;padding:8px 6px;border-radius:8px;border:1px solid var(--acc);background:var(--card);color:var(--acc);cursor:pointer}
+.sacct button:disabled{opacity:.6}
+.sacct #sOut{border-color:var(--line);color:var(--sub);font-weight:400}
 .topbar{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 /* 画面の色(自動・ライト・ダーク)。上のバーの右端 */
 .thm{margin-left:auto;display:inline-flex;flex:none;padding:2px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
@@ -359,6 +365,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <input id="sQ" class="sq" type="search" placeholder="現場名で探す" aria-label="現場名で探す">
 <ul class="slist" id="sList"></ul>
 <p class="ssync" id="sSync">この端末に保存しています</p>
+<div class="sacct" id="sAcct"><p class="swho" id="sWho"></p><button type="button" id="sIn">Googleでログインしてクラウドに保存</button><button type="button" id="sOut" hidden>ログアウト</button></div>
 <div class="sbk"><button type="button" id="bkOut">データを書き出す</button><button type="button" id="bkIn">読み込む</button></div>
 <input type="file" id="bkFile" accept="application/json,.json" hidden>
 <p class="bkmsg" id="bkMsg" role="status"></p>
@@ -1221,8 +1228,8 @@ $("sClose").addEventListener("click",closeSide);
 document.addEventListener("click",function(e){if($("side").classList.contains("open")&&!e.target.closest("#side")&&!e.target.closest("#sOpen"))closeSide()});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSide()});
 /* クラウド(どの端末からでも同じ現場が見える) */
-function setSync(k){var el=$("sSync");el.classList.toggle("ng",k==="err"||k==="full");
-el.textContent={local:"この端末に保存しています",ok:"クラウドに保存済み(ほかの端末でも開けます)",saving:"クラウドに保存中…",err:"クラウドに保存できませんでした。この端末には残っています",full:"保存先がいっぱいです。使わない現場を削除してください"}[k]||""}
+function setSync(k){var el=$("sSync");el.classList.toggle("ng",k==="err"||k==="full"||k==="lerr"||k==="prep");
+el.textContent={local:"この端末に保存しています",ok:"クラウドに保存済み(ほかの端末でも開けます)",saving:"クラウドに保存中…",err:"クラウドに保存できませんでした。この端末には残っています",full:"保存先がいっぱいです。使わない現場を削除してください",prep:"クラウドの準備中です。電波のある場所で少し待ってから、もう一度押してください",lerr:"ログインできませんでした。もう一度お試しください"}[k]||""}
 function queuePush(id){if(!COL)return;dirty[id]=1;clearTimeout(pushT[id]);pushT[id]=setTimeout(function(){doPush(id)},1500)}
 function doPush(id){
 if(!COL)return;if(inflight[id]){pushT[id]=setTimeout(function(){doPush(id)},800);return}
@@ -1249,13 +1256,32 @@ if(!Object.keys(dirty).length)setSync("ok")}
 if(!CUR){var rest=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)});if(rest.length)openSite(rest[0].id);else{var s=addSite({},"無題");openSite(s.id)}return}
 if(curChanged)applyState(siteById(CUR).data);
 if(listChanged||curChanged){writeLocal();renderSites()}}
+/* ログイン(GitHub Pagesで開いたとき: Googleでログインして Firebase に保存) */
+var UNSUB=null;
+function renderAcct(u){
+if(window.claude&&window.claude.use){$("sAcct").hidden=true;return}
+$("sWho").textContent=u?"ログイン中: "+(u.email||u.displayName||""):"ログインすると、ほかのスマホでも同じ現場を開けます";
+$("sIn").hidden=!!u;$("sOut").hidden=!u}
+$("sIn").addEventListener("click",function(){
+if(!window.FBC||!FBC.ready()){setSync("prep");if(window.FBC)initCloud();return}
+var b=$("sIn");b.disabled=true;
+FBC.signIn().catch(function(e){var c=(e&&e.code)||"";if(!/popup-closed|cancelled-popup/.test(c))setSync("lerr")}).then(function(){b.disabled=false})});
+$("sOut").addEventListener("click",function(){if(window.FBC&&FBC.ready()&&confirm("ログアウトしますか？(この端末の現場はそのまま残ります)"))FBC.signOut()});
 async function initCloud(){
 try{
-if(!window.claude||!window.claude.use)return;
+if(window.claude&&window.claude.use){
 var u=await window.claude.use("user"),db=await window.claude.use("db");
 if(!u||!db)return;var uid=await u.id();if(!uid)return;
 COL=db.collection("data/users/"+uid);
-COL.onSnapshot(onRemote,function(){COL=null;setSync("local")})
+COL.onSnapshot(onRemote,function(){COL=null;setSync("local")});return}
+if(!window.FBC)return;
+renderAcct(null);
+await FBC.init(function(u){
+if(UNSUB){try{UNSUB()}catch(e){}UNSUB=null}
+COL=null;firstSync=false;renderAcct(u);
+if(!u){setSync("local");return}
+COL=FBC.col(u.uid);setSync("saving");
+UNSUB=COL.onSnapshot(onRemote,function(){COL=null;UNSUB=null;setSync("err")})})
 }catch(e){COL=null;setSync("local")}}
 /* 起動: 以前の1件分の保存があれば、最初の現場として引き継ぐ */
 (function(){
@@ -1265,6 +1291,7 @@ if(!SITES.length){var old=rd(KEY)||rd(OLDKEY);SITES=[{id:newId(),name:siteName(o
 var c="";try{c=localStorage.getItem(CKEY)||""}catch(e){}
 if(!siteById(c))c=SITES.slice().sort(function(a,b){return (b.updated||0)-(a.updated||0)})[0].id;
 CUR=c;applyState(siteById(c).data);writeLocal();renderSites()})();
+initCloud();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderPreview);
 
 /* ===================== Excel(.xlsx)書き出し =====================
