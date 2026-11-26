@@ -102,7 +102,7 @@ input.mname{font-weight:700}
 .tadd:hover{background:var(--brb)}
 .chips .tadd{margin-bottom:0;margin-left:3px}
 .rcount{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-#rows,#hrows{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc(100% - 28px);gap:10px;align-items:start;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding-bottom:8px;margin-bottom:4px;scrollbar-width:thin}
+#rows,#hrows{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc(100% - 28px);gap:10px;align-items:stretch;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding-bottom:8px;margin-bottom:4px;scrollbar-width:thin}
 #rows.one,#hrows.one{grid-auto-columns:100%}
 #rows>.rc,#hrows>.rc{scroll-snap-align:start;margin-bottom:0;border-top-left-radius:4px;border-top-right-radius:4px}
 .rh input{font-weight:700}
@@ -266,7 +266,7 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 .pjcard .pjgrid{gap:1px}
 .pjcard .f{background:var(--card);padding:8px 12px 3px;min-width:0;transition:background-color .15s,box-shadow .15s}
 .pjcard .f:focus-within{background:var(--brb);box-shadow:inset 0 -2px 0 var(--acc)}
-.pjcard label{font-size:.7rem;margin:0;letter-spacing:.02em}
+.pjcard label{font-size:.75rem;margin:0;letter-spacing:.02em}
 .pjcard input,.pjcard select{height:2.15rem;border:0;border-radius:0;background:transparent;padding:0;font-size:1rem}
 .pjcard select{margin-left:-3px;width:calc(100% + 3px)}
 .pjcard input:focus-visible,.pjcard select:focus-visible{outline:none}
@@ -419,7 +419,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <p class="lead">幹線ごとに負荷と長さを入れて「計算する」を押すと、ケーブルの太さと判定が出ます。計算書はPDF・Excelで保存できます。低圧と高圧は下のタブで切り替えます。</p></header>
 <section class="card pjcard">
 <div class="pjgrid">
-<div class="f pjn"><label for="pjName">件名(建物名称)</label><input id="pjName" placeholder="件名を入力(例: ○○ビル新築工事)"></div>
+<div class="f pjn"><label for="pjName">件名(建物名称)</label><input id="pjName" placeholder="例: ○○ビル新築工事"></div>
 <div class="f"><label for="pjDate">作成日</label><input id="pjDate" inputmode="numeric" placeholder="空欄で今日"></div>
 <div class="f"><label for="pjCo">会社名</label><input id="pjCo"></div>
 <div class="f"><label for="pjBy">担当者</label><input id="pjBy"></div>
@@ -433,7 +433,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <section class="card">
 <h2>低圧の共通条件</h2>
 <div class="g2" style="margin-top:0">
-<div class="f"><label for="pjSup">電源の供給方式</label><select id="pjSup"><option value="tr">構内の変圧器から供給</option><option value="lv">電気事業者から低圧で受電</option></select></div>
+<div class="f"><label for="pjSup">電源の供給方式</label><select id="pjSup"><option value="tr">構内の変圧器</option><option value="lv">低圧で受電</option></select></div>
 <div class="f"><label>導体</label><div class="seg" role="group" aria-label="導体の材質"><button type="button" id="mCu" aria-pressed="true">銅</button><button type="button" id="mAl" aria-pressed="false">アルミ</button></div></div>
 </div>
 <div id="alwrap" hidden style="margin-top:10px">
@@ -539,7 +539,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 </main>
 <script>
 /* 出力(PDF・Excel)のフォントの一覧(起動の途中で使うので最初に置く) */
-var OUTF=[["bizg","BIZ UDPゴシック(標準)","'BIZ UDPGothic'","BIZ+UDPGothic","BIZ UDPゴシック","g"],
+var OUTF=[["bizg","BIZ UDPゴシック","'BIZ UDPGothic'","BIZ+UDPGothic","BIZ UDPゴシック","g"],
 ["bizm","BIZ UDP明朝","'BIZ UDPMincho'","BIZ+UDPMincho","BIZ UDP明朝","m"],
 ["notos","Noto Sans JP(ゴシック)","'Noto Sans JP'","Noto+Sans+JP","Noto Sans JP","g"],
 ["notom","Noto Serif JP(明朝)","'Noto Serif JP'","Noto+Serif+JP","Noto Serif JP","m"],
@@ -567,9 +567,9 @@ var PF={"3":0.7,"4":0.63,"6":0.56,"15":0.49};
 var ML=[["1段×2列",.85,.95,1],["1段×3列",.8,.95,1],["1段×4〜6列",.7,.9,.95],["1段×7〜20列",.7,.8,null],
 ["2段×2列",.7,.9,.95],["2段×3列",.6,.9,.95],["2段×4列",.6,.85,.9],["2段×5列",.56,.73,null],["2段×6列",.53,.72,null],["2段×7列",.51,.71,null],["2段×8〜20列",.5,.7,null],
 ["3段×3列",.48,.8,.85],["3段×4列",.41,.8,.85],["3段×5列",.37,.68,null],["3段×6列",.34,.66,null],["3段×7列",.32,.65,null],["3段×8列",.31,.65,null],["3段×9〜10列",.3,.64,null],["3段×11〜12列",.3,.63,null],["3段×13〜15列",.3,.62,null],["3段×16〜19列",.3,.61,null],["3段×20列",.3,.6,null]];
-var M_OPTS=[["1p2","単相2線式"],["3p3","三相3線式"],["1p3","単相3線式"],["3p4","三相4線式(相電圧)"]];
+var M_OPTS=[["1p2","単相2線式"],["3p3","三相3線式"],["1p3","単相3線式"],["3p4","三相4線式"]];
 var U_OPTS=[["kVA","容量 kVA"],["kW","電力 kW"],["A","電流 A"]];
-var INS_OPTS=[["0","空中・ラック・がいし引き"],["1","管路・電線管"],["2","地中配管"]];
+var INS_OPTS=[["0","空中・ラック"],["1","管路・電線管"],["2","地中配管"]];
 var N_OPTS=[["3","3本以下"],["4","4本"],["6","5〜6本"],["15","7〜15本"]];
 var TMP_OPTS=[["","基準温度のまま"],["25","25℃"],["30","30℃"],["35","35℃"],["40","40℃"],["45","45℃"],["50","50℃"]];
 var MLS_OPTS=[["","多条布設なし"],["1","中心間隔 S=D"],["2","中心間隔 S=2D"],["3","中心間隔 S=3D"]];
@@ -578,9 +578,9 @@ var PAR_OPTS=[["1","1条"],["2","2条"],["3","3条"],["4","4条"]];
 var SD_OPTS=[["2","間隔をあける(S=2d)"],["1","くっつける(S=d)"]];
 /* S=dの値がある単心ケーブルを空中に布設するときだけ、並べ方を選べる */
 function hasSd(ct,ins){var T=CABM[ct];return !!(T&&T.sd)&&String(ins)==="0"}
-function szOpts(ct){return [["","自動(最小サイズ)"]].concat(sizesFor({ct:ct}).map(function(k){return [k,szLabel(k)]}))}
-var BK_OPTS=[["","自動(設計電流から選ぶ)"]].concat(STD.map(function(s){return [String(s),s+" A"]}));
-var MB_OPTS=[["","なし(記載しない)"]].concat(STD.map(function(s){return [String(s),s+" A"]}));
+function szOpts(ct){return [["","自動"]].concat(sizesFor({ct:ct}).map(function(k){return [k,szLabel(k)]}))}
+var BK_OPTS=[["","自動"]].concat(STD.map(function(s){return [String(s),s+" A"]}));
+var MB_OPTS=[["","なし"]].concat(STD.map(function(s){return [String(s),s+" A"]}));
 var KEY="vd-calc-v6",OLDKEY="vd-calc-v5";
 var $=function(id){return document.getElementById(id)};
 /* 開いた欄の頭を、画面の上から同じ位置(セーフエリア+12px)にそろえる */
@@ -895,7 +895,7 @@ function rowHTML(r,pos){return '<article class="rc'+(r.cl?' cl':'')+'" data-id="
 '<div class="rh"><span class="rn">'+pos+'</span><input data-f="name" value="'+esc(r.name)+'" placeholder="幹線番号" aria-label="幹線番号"><button type="button" class="mini" data-act="dup">複製</button><button type="button" class="mini" data-act="del">削除</button><button type="button" class="mini tg" data-act="tog" aria-expanded="'+(!r.cl)+'" aria-label="'+(r.cl?'ひらく':'たたむ')+'">'+CHEV+'</button></div>'+
 '<button type="button" class="sum" data-act="open"></button><div class="cbody">'+
 '<div class="g2" style="grid-template-columns:1fr">'+fin('負荷名称','load',r.load,'','', 'text')+'</div>'+
-'<div class="g2">'+fsel('配電方式','m',M_OPTS,r.m)+fin('基準電圧(V)','v',r.v)+'</div>'+
+'<div class="g2">'+fsel('配電方式','m',M_OPTS,r.m)+fin(r.m==="3p4"?'相電圧(V)':'基準電圧(V)','v',r.v)+'</div>'+
 '<div class="sec"><h3>負荷</h3>'+
 '<div class="gw"><div class="g2 keep">'+fsel('一般負荷','u',U_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="例: 30" value="'+esc(r.x)+'"></div></div>'+
 '<div class="g2 keep"><div class="pfrow">'+fin('力率(cosφ)','pf',r.pf,'','0.05')+'</div>'+fin('需要率','dm',r.dm,'','0.05')+'</div></div>'+
@@ -935,6 +935,8 @@ var lon=lcOn(r);
 card.querySelector(".lcchk").hidden=!(r.m==="1p2"||r.m==="1p3");
 card.querySelector(".lcw").hidden=!lon;card.querySelector(".gw").hidden=lon;
 card.querySelector(".pfrow").hidden=lon||r.u!=="kW";
+/* 三相4線式は相電圧で入れる約束なので、欄の名前で知らせる */
+var vIn=card.querySelector('input[data-f="v"]');if(vIn&&vIn.previousElementSibling)vIn.previousElementSibling.textContent=r.m==="3p4"?"相電圧(V)":"基準電圧(V)";
 card.querySelector(".mrow").hidden=!is3(r.m);
 card.querySelector(".nw").hidden=!(r.ins==="1"&&WIRES[r.ct]);
 card.querySelector(".sdw").hidden=!hasSd(r.ct,r.ins);
@@ -961,8 +963,8 @@ if(on){var X=ch[k].offsetLeft,W=ch[k].offsetWidth;if(X<c.scrollLeft)c.scrollLeft
 $(p.p+"count").textContent=(i+1)+" / "+L.length;$(p.p+"Prev").disabled=i<=0;$(p.p+"Next").disabled=i>=L.length-1;S.fit()};
 /* 横に並んだカードの高さは、一番高いカードに合わせる(横にスクロールしても下の「計算する」が上下に動かないように) */
 var ro=window.ResizeObserver?new ResizeObserver(function(){S.fit()}):null;
-S.fit=function(){var box=$(p.box),cs=cards();if(!cs.length){box.style.height="";return}var h=0;
-Array.prototype.forEach.call(cs,function(c){if(ro&&!c._ro){ro.observe(c);c._ro=1}h=Math.max(h,c.offsetHeight)});box.style.height=h?(h+8)+"px":""};
+S.fit=function(){var box=$(p.box),cs=cards();if(!cs.length){box.style.height="";return}var h=0;box.style.alignItems="start";
+Array.prototype.forEach.call(cs,function(c){if(ro&&!c._ro){ro.observe(c);c._ro=1}h=Math.max(h,c.offsetHeight)});box.style.alignItems="";box.style.height=h?(h+8)+"px":""};
 if(window.MutationObserver)new MutationObserver(function(){S.fit()}).observe($(p.box),{childList:true});
 S.chips=function(){var L=p.list();$(p.p+"chips").innerHTML=L.map(function(r,i){return '<button type="button" class="chip" data-ci="'+i+'" aria-current="false"><span class="cn">'+(i+1)+'</span><span class="ct">'+esc(r.name||("幹線"+(i+1)))+'</span></button>'}).join("");if(addB)$(p.p+"chips").appendChild(addB);$(p.box).classList.toggle("one",L.length<2);S.set(S.i)};
 S.name=function(r){var k=p.list().indexOf(r),cb=$(p.p+"chips").querySelector('[data-ci="'+k+'"] .ct');if(cb)cb.textContent=r.name||("幹線"+(k+1))};
@@ -1066,7 +1068,7 @@ r60:[1.67,1.06,0.614,0.389,0.234,0.156,0.118,0.0957,0.0744,0.0613],x60:[0.244,0.
 var HCT_OPTS=[["CVT","6600V CVT"]];
 var HINS_OPTS=[["0","気中・暗きょ"],["1","管路(1孔1条)"],["2","直接埋設"]];
 var HINSS={"0":"気中","1":"管路","2":"直埋"};
-var HDEV_OPTS=[["","なし(記載しない)"],["VCB","VCB(真空遮断器)"],["PAS","PAS(区分開閉器)"],["LBS","LBS(PF付)"],["PF","PF(限流ヒューズ)"]];
+var HDEV_OPTS=[["","なし"],["VCB","VCB(真空遮断器)"],["PAS","PAS(区分開閉器)"],["LBS","LBS(PF付)"],["PF","PF(限流ヒューズ)"]];
 var HU_OPTS=[["kVA","容量 kVA"],["kW","電力 kW"],["A","電流 A"]];
 var HPH={x:"例: 500",l:"例: 50",dm:"空欄で1",pf:"空欄で0.85",ht:"空欄で共通の目標",c:"空欄で1",dvA:"例: 600",dvK:"例: 12.5",ts:"空欄で共通の値",isk:"空欄で受電点の値"};
 function hDefRow(){return {id:nextId++,name:"",load:"",u:"kVA",x:"",dm:"",pf:"",l:"",ht:"",ct:"CVT",ins:"0",par:"1",tmp:"",c:"",size:"",dev:"",dvA:"",dvK:"",ts:"",isk:"",memo:"",cl:false}}
@@ -1162,10 +1164,10 @@ function hRowHTML(r,pos){return '<article class="rc'+(r.cl?' cl':'')+'" data-id=
 '<div class="rh"><span class="rn">'+pos+'</span><input data-f="name" value="'+esc(r.name)+'" placeholder="幹線番号" aria-label="幹線番号"><button type="button" class="mini" data-act="dup">複製</button><button type="button" class="mini" data-act="del">削除</button><button type="button" class="mini tg" data-act="tog" aria-expanded="'+(!r.cl)+'" aria-label="'+(r.cl?'ひらく':'たたむ')+'">'+CHEV+'</button></div>'+
 '<button type="button" class="sum" data-act="open"></button><div class="cbody">'+
 '<div class="g2" style="grid-template-columns:1fr">'+hFin('負荷名称','load',r.load,'','text')+'</div>'+
-'<div class="sec"><h3>負荷</h3><div class="g3 keep">'+fsel('単位','u',HU_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="'+HPH.x+'" value="'+esc(r.x)+'"></div>'+hFin('需要率','dm',r.dm)+'</div>'+
-'<div class="g3 keep"><div></div>'+hFin('力率(cosθ)','pf',r.pf)+'</div></div>'+
+'<div class="sec"><h3>負荷</h3><div class="g2 keep">'+fsel('単位','u',HU_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="'+HPH.x+'" value="'+esc(r.x)+'"></div></div>'+
+'<div class="g2 keep">'+hFin('力率(cosθ)','pf',r.pf)+hFin('需要率','dm',r.dm)+'</div></div>'+
 '<div class="sec"><h3>幹線</h3><div class="g3">'+fsel('ケーブルの種別','ct',HCT_OPTS,r.ct)+fsel('敷設方法','ins',HINS_OPTS,r.ins)+fsel('並列条数','par',PAR_OPTS,r.par)+
-hFin('こう長(m)','l',r.l)+hFin('電圧降下の目標(%)','ht',r.ht)+fsel('ケーブルサイズ','size',[["","自動(最小サイズ)"]].concat(HCAB[r.ct].sz.map(function(k){return [k,k+"sq"]})),r.size)+'</div>'+
+hFin('こう長(m)','l',r.l)+hFin('電圧降下の目標(%)','ht',r.ht)+fsel('ケーブルサイズ','size',[["","自動"]].concat(HCAB[r.ct].sz.map(function(k){return [k,k+"sq"]})),r.size)+'</div>'+
 '<details><summary class="cs"></summary><div class="g3">'+fsel('周囲温度','tmp',TMP_OPTS,r.tmp)+hFin('その他の補正係数','c',r.c)+'</div></details></div>'+
 '<div class="sec"><h3>短絡・保護機器</h3><div class="g3">'+hFin('短絡電流(kA)','isk',r.isk)+hFin('遮断時間(秒)','ts',r.ts)+fsel('保護機器','dev',HDEV_OPTS,r.dev)+
 '<div class="f dvw"><label>定格電流(A)</label><input data-f="dvA" type="number" inputmode="decimal" placeholder="'+HPH.dvA+'" value="'+esc(r.dvA)+'"></div>'+
