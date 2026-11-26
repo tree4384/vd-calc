@@ -274,6 +274,17 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 @media (prefers-reduced-motion:reduce){.pjcard .f{transition:none}}
 @media (max-width:1100px){.pjcard .f:last-child{grid-column:span 2}}
 @media (max-width:520px){.pjcard .pjgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pjcard .pjn{grid-column:1/-1}.pjcard .f:last-child{grid-column:1/-1}}
+/* AIは計算結果の右下の小さいボタンから、下から出るシートで開く(ページを長くしないため) */
+.rfoot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+#aiBtn{margin-left:auto}
+.hwd .fmb2>.note{margin:0}
+.aib{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.8rem;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--acc);cursor:pointer}
+.aib:hover{border-color:var(--acc)}
+.aib>svg{width:14px;height:14px;flex:none}
+.aid .fmh h2{display:flex;align-items:center;gap:8px}
+.aid .fmb2{padding-top:10px}
+#aiDlg #aiCard{border:0;box-shadow:none;margin:0;padding:0;background:none}
+#aiDlg #aiCard>summary{display:none}
 /* 計算式を見るボタンと計算式のシート */
 .btns{flex-wrap:wrap}
 .fmb{flex:1 0 100%;display:flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:.88rem;font-weight:700;padding:7px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--card);color:var(--acc);cursor:pointer}
@@ -440,7 +451,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <div class="cg" id="cgrid"></div>
 </section>
 
-<details class="card">
+<details class="card" id="howL">
 <summary style="margin-top:0">計算のしくみと根拠</summary>
 <div class="note" style="margin-top:10px">
 <p><b>電圧降下</b> e = k × L × I ÷ (1000 × A)。kは単相2線式35.6、三相3線式30.8、単相3線式・三相4線式17.8(内線規程の簡易式)。単相3線式は100V、三相4線式は相電圧で入れてください。電圧降下の電流は、負荷電流の単純和(需要率をかけた値)です。並列のときは断面積×条数で計算します。単線は、1.6mmを2.01mm²、2.0mmを3.14mm²、2.6mmを5.31mm²として計算します。</p>
@@ -492,7 +503,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <button type="button" class="fmb" data-fm="hv" aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h3"/></svg>計算式を見る</button>
 <button type="button" class="btn pri" id="hgo">計算する</button>
 </div>
-<details class="card">
+<details class="card" id="howH">
 <summary style="margin-top:0">高圧の計算のしくみと根拠</summary>
 <div class="note" style="margin-top:10px">
 <p><b>負荷電流</b> I = S ÷ (√3 × 6.6kV)。kWのときは力率で割ります。需要率をかけた値です。</p>
@@ -1804,6 +1815,34 @@ window.addEventListener("load",function(){navigator.serviceWorker.register("sw.j
 </script>
 <script>
 /* ===== AI要約・チェック(Gemini)・電圧降下アプリの設定 ===== */
+/* 計算結果のカードの下の段(rfoot)に、左に「計算のしくみと根拠」、右に「AIチェック」の小さいボタンを置く。
+   どちらも押すと下から出るシートで開く(ページを長くしないため) */
+function rfoot(host){var b=host&&(host.querySelector(".rbody")||host);if(!b)return null;var f=null;for(var i=0;i<b.children.length;i++)if(b.children[i].classList.contains("rfoot"))f=b.children[i];
+if(!f){f=document.createElement("div");f.className="rfoot";b.appendChild(f)}return f}
+function sheet(id,cls,title){var d=document.createElement("dialog");d.className="fmd "+cls;d.id=id;d.setAttribute("aria-labelledby",id+"T");
+d.innerHTML='<div class="fmh"><h2 id="'+id+'T">'+title+'</h2><button type="button" class="mini" data-shx>閉じる</button></div><div class="fmb2"></div>';
+document.body.appendChild(d);
+d.addEventListener("click",function(e){if(e.target===d||e.target.closest("[data-shx]")){if(d.close)d.close();else d.removeAttribute("open")}});return d}
+function sheetOpen(d){if(d.showModal)d.showModal();else d.setAttribute("open","");d.querySelector(".fmb2").scrollTop=0}
+var ICON_HOW='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3.5h9.5a2 2 0 0 1 2 2V17H6a2 2 0 0 1-2-2z"/><path d="M4 15a2 2 0 0 1 2-2h9.5M7.5 7h5M7.5 10h3"/></svg>';
+/* 「計算のしくみと根拠」のカード(details)をシートに移し、計算結果の下の段にボタンを置く */
+function howDock(det,host){if(!det||!host)return;var sm=det.querySelector("summary"),t=sm?sm.textContent.trim():"計算のしくみと根拠";
+var d=sheet((det.id||"how")+"Dlg","hwd",t),bx=d.querySelector(".fmb2");
+Array.prototype.slice.call(det.childNodes).forEach(function(n){if(n!==sm)bx.appendChild(n)});det.remove();
+var b=document.createElement("button");b.type="button";b.className="aib hwb";b.setAttribute("aria-haspopup","dialog");b.innerHTML=ICON_HOW+t;
+b.addEventListener("click",function(){sheetOpen(d)});var f=rfoot(host);if(f)f.insertBefore(b,f.firstChild)}
+function aiDock(el,host){
+var d=document.getElementById("aiDlg");
+if(!d){d=sheet("aiDlg","aid aic",'AI要約・チェック<span class="aitag">Gemini</span>')}
+var bx=d.querySelector(".fmb2");if(el.parentNode!==bx)bx.appendChild(el);
+if(!el.open){el.setAttribute("data-init","1");el.open=true}
+var b=document.getElementById("aiBtn");
+if(!b){b=document.createElement("button");b.type="button";b.className="aib";b.id="aiBtn";b.setAttribute("aria-haspopup","dialog");
+b.innerHTML='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6zM15.5 13l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>AIチェック';
+b.addEventListener("click",function(){var c=document.getElementById("aiCard");if(c&&!c.open){c.setAttribute("data-init","1");c.open=true}sheetOpen(d)})}
+var sb=document.getElementById("aiSB");if(sb&&sb.parentNode!==b)b.appendChild(sb);
+var f=rfoot(host);if(f&&b.parentNode!==f)f.appendChild(b)}
+howDock(document.getElementById("howL"),document.getElementById("rcL"));howDock(document.getElementById("howH"),document.getElementById("rcH"));
 var AICFG=(function(){
 function untag(h){var d=document.createElement("div");d.innerHTML=String(h==null?"":h).replace(/<br\s*\/?>/gi," ").replace(/<span class="s2">/g," / ");return d.textContent.replace(/\s+/g," ").trim()}
 /* 計算書の欄外(計算方法・根拠)をそのまま使う。件名・会社名・担当者は入れない */
@@ -1917,7 +1956,7 @@ sends:"回路名・負荷名称や備考",
 lead:"いま開いているタブ(低圧・高圧)の計算結果をGoogleのAI(Gemini)に送ります。",
 empty:"幹線の入力がまだないので、AIに送るものがありません。負荷とこう長を入れて「計算する」を押してください。",
 sys:function(){var h=MODE==="hv";return (h?CHK_HV:CHK_LV)+"\n# 要約(overview・points)の書き方\n"+(h?PTS_HV:PTS_LV)},
-place:function(el){var host=$(MODE==="hv"?"hrt":"rt").closest(".card");if(host&&host.nextSibling!==el)host.parentNode.insertBefore(el,host.nextSibling)},
+place:function(el){aiDock(el,$(MODE==="hv"?"hrt":"rt").closest(".card"))},
 ensure:function(){if(MODE==="hv"){if(!$("hstale").hidden)hRunCalc()}else if(!$("stale").hidden)runCalc()},
 data:function(kind){var full=kind==="chk";
 if(MODE==="hv"){var hs=LASTHOS.filter(function(o){return o.I!=null});if(!hs.length)return "";
