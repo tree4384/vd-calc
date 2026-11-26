@@ -388,6 +388,10 @@ details.aic[open]>summary .aich svg{transform:rotate(180deg)}
 /* 計算結果のカード(折りたたみ) */
 details.rcard>summary{list-style:none;display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-size:1rem}
 details.rcard>summary::-webkit-details-marker{display:none}
+/* 選定書(計算書)のカードもたためる。中身は見出しの少し下から */
+details.outc>summary+*{margin-top:12px}
+details.outc>summary .aich{margin-left:auto}
+
 details.rcard>summary h2{margin:0;flex:none}
 details.rcard>summary .mini{flex:none}
 .rst{flex:1;min-width:0;font-size:.8rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -476,8 +480,8 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <textarea id="tsv" hidden readonly aria-label="コピー用の表"></textarea>
 </div></details>
 
-<section class="card">
-<h2><span id="ttlL">電圧降下計算書</span>(PDF・Excel)</h2>
+<details class="card rcard outc" id="outL" open>
+<summary><h2><span id="ttlL">電圧降下計算書</span>(PDF・Excel)</h2></summary>
 <div class="outset"><div class="f ttl"><label for="pjTitle">題名(タップで編集できます)</label><input id="pjTitle" placeholder="電圧降下計算書" autocomplete="off"></div><div class="f"><label for="outFont">出力のフォント(PDF・Excel)</label><select id="outFont" class="outfsel"></select></div></div>
 <div class="pvbar">
 <label class="chk"><input type="checkbox" id="pbr"> 分岐選定の列を入れる</label>
@@ -486,7 +490,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <p class="note" id="pdfmsg"></p>
 <p class="note" style="margin:0 0 8px">ページをタップすると、全画面で拡大して見られます。</p>
 <div class="desk" id="pv"></div>
-</section>
+</details>
 </div></div>
 
 <div id="hvView" class="layout" hidden><div class="colL">
@@ -523,14 +527,14 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <p class="stale-msg" id="hstale" hidden>入力が変わりました。「計算する」を押すと表と計算書が更新されます。</p>
 <div class="tw" id="hrt"></div>
 </div></details>
-<section class="card">
-<h2><span id="ttlH">高圧幹線計算書</span>(PDF・Excel)</h2>
+<details class="card rcard outc" id="outH" open>
+<summary><h2><span id="ttlH">高圧幹線計算書</span>(PDF・Excel)</h2></summary>
 <div class="outset"><div class="f ttl"><label for="pjHTitle">題名(タップで編集できます)</label><input id="pjHTitle" placeholder="高圧幹線計算書" autocomplete="off"></div><div class="f"><label for="outFontH">出力のフォント(PDF・Excel)</label><select id="outFontH" class="outfsel"></select></div></div>
 <div class="pvbar"><button type="button" class="btn pri" id="hpdf">PDFを保存</button><button type="button" class="btn" id="hxlsx">Excelで保存</button><button type="button" class="btn" id="hdxf">DXFで保存</button><button type="button" class="btn" id="hzoom">拡大して見る</button></div>
 <p class="note" id="hpdfmsg"></p>
 <p class="note" style="margin:0 0 8px">ページをタップすると、全画面で拡大して見られます。</p>
 <div class="desk" id="hpv"></div>
-</section>
+</details>
 </div></div>
 </main>
 <script>
@@ -840,6 +844,8 @@ var pages=buildPages(),P=PAPER[PJ.ppr];
 var w=Math.min(pv.clientWidth-28,P.w);if(!(w>0))w=P.w;var sc=w/P.w;
 pages.forEach(function(p){var b=document.createElement("div");b.className="pgbox";b.tabIndex=0;b.setAttribute("role","button");b.setAttribute("aria-label",(pv.children.length+1)+"ページ目を拡大して見る");b.style.width=(P.w*sc)+"px";b.style.height=(P.h*sc)+"px";p.style.transform="scale("+sc+")";b.appendChild(p);pv.appendChild(b)})}
 var rzT;window.addEventListener("resize",function(){clearTimeout(rzT);rzT=setTimeout(renderPreview,200)});
+/* たたんでいた選定書を開いたら、プレビューを幅に合わせて描き直す */
+(function(d){if(d)d.addEventListener("toggle",function(){if(d.open)renderPreview()})})(document.getElementById("outL"));(function(d){if(d)d.addEventListener("toggle",function(){if(d.open)renderPreview()})})(document.getElementById("outH"));
 
 async function makePdf(){
 var HV=MODE==="hv",btn=$(HV?"hpdf":"pdf"),msg=$(HV?"hpdfmsg":"pdfmsg"),TITLE=docTitle(HV);
