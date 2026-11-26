@@ -277,6 +277,9 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 /* AIは計算結果の右下の小さいボタンから、下から出るシートで開く(ページを長くしないため) */
 .rfoot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 #aiBtn{margin-left:auto}
+@media (max-width:440px){.rfoot{gap:6px}.rfoot .aib{padding:6px 10px}.rfoot .aib>svg{display:none}}
+.rfoot .aib.fmb{flex:0 0 auto;width:auto;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.8rem;gap:6px;justify-content:flex-start}
+.rfoot .aib.fmb svg{width:14px;height:14px}
 .hwd .fmb2>.note{margin:0}
 .aib{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.8rem;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--acc);cursor:pointer}
 .aib:hover{border-color:var(--acc)}
@@ -950,11 +953,10 @@ S.set=function(i){var L=p.list();i=Math.max(0,Math.min(i,L.length-1));S.i=i;var 
 for(var k=0;k<ch.length;k++){var on=k===i;ch[k].setAttribute("aria-current",on?"true":"false");
 if(on){var X=ch[k].offsetLeft,W=ch[k].offsetWidth;if(X<c.scrollLeft)c.scrollLeft=X-4;else if(X+W>c.scrollLeft+c.clientWidth)c.scrollLeft=X+W-c.clientWidth+4}}
 $(p.p+"count").textContent=(i+1)+" / "+L.length;$(p.p+"Prev").disabled=i<=0;$(p.p+"Next").disabled=i>=L.length-1;S.fit()};
-/* 横に並んだカードの高さを、いま見ているカードに合わせる(短いカードの下に大きな空きができないように) */
-var ro=window.ResizeObserver?new ResizeObserver(function(){S.fit()}):null,roEl=null;
-S.fit=function(){var box=$(p.box),c=cards()[S.i];if(!c){box.style.height="";return}
-if(ro&&roEl!==c){if(roEl)ro.unobserve(roEl);ro.observe(c);roEl=c}
-var h=c.offsetHeight;box.style.height=h?(h+8)+"px":""};
+/* 横に並んだカードの高さは、一番高いカードに合わせる(横にスクロールしても下の「計算する」が上下に動かないように) */
+var ro=window.ResizeObserver?new ResizeObserver(function(){S.fit()}):null;
+S.fit=function(){var box=$(p.box),cs=cards();if(!cs.length){box.style.height="";return}var h=0;
+Array.prototype.forEach.call(cs,function(c){if(ro&&!c._ro){ro.observe(c);c._ro=1}h=Math.max(h,c.offsetHeight)});box.style.height=h?(h+8)+"px":""};
 if(window.MutationObserver)new MutationObserver(function(){S.fit()}).observe($(p.box),{childList:true});
 S.chips=function(){var L=p.list();$(p.p+"chips").innerHTML=L.map(function(r,i){return '<button type="button" class="chip" data-ci="'+i+'" aria-current="false"><span class="cn">'+(i+1)+'</span><span class="ct">'+esc(r.name||("幹線"+(i+1)))+'</span></button>'}).join("");if(addB)$(p.p+"chips").appendChild(addB);$(p.box).classList.toggle("one",L.length<2);S.set(S.i)};
 S.name=function(r){var k=p.list().indexOf(r),cb=$(p.p+"chips").querySelector('[data-ci="'+k+'"] .ct');if(cb)cb.textContent=r.name||("幹線"+(k+1))};
@@ -1829,8 +1831,10 @@ var ICON_HOW='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-
 function howDock(det,host){if(!det||!host)return;var sm=det.querySelector("summary"),t=sm?sm.textContent.trim():"計算のしくみと根拠";
 var d=sheet((det.id||"how")+"Dlg","hwd",t),bx=d.querySelector(".fmb2");
 Array.prototype.slice.call(det.childNodes).forEach(function(n){if(n!==sm)bx.appendChild(n)});det.remove();
-var b=document.createElement("button");b.type="button";b.className="aib hwb";b.setAttribute("aria-haspopup","dialog");b.innerHTML=ICON_HOW+t;
+var b=document.createElement("button");b.type="button";b.className="aib hwb";b.setAttribute("aria-haspopup","dialog");b.innerHTML=ICON_HOW+"しくみと根拠";b.setAttribute("aria-label",t);
 b.addEventListener("click",function(){sheetOpen(d)});var f=rfoot(host);if(f)f.insertBefore(b,f.firstChild)}
+/* 「計算式を見る」のボタンも計算結果の下の段の先頭に移す(押したときの動きはそのまま) */
+function fmDock(btn,host){if(!btn||!host)return;btn.classList.add("aib");btn.innerHTML='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h3"/></svg>計算式';var f=rfoot(host);if(f)f.insertBefore(btn,f.firstChild)}
 function aiDock(el,host){
 var d=document.getElementById("aiDlg");
 if(!d){d=sheet("aiDlg","aid aic",'AI要約・チェック<span class="aitag">Gemini</span>')}
@@ -1843,6 +1847,7 @@ b.addEventListener("click",function(){var c=document.getElementById("aiCard");if
 var sb=document.getElementById("aiSB");if(sb&&sb.parentNode!==b)b.appendChild(sb);
 var f=rfoot(host);if(f&&b.parentNode!==f)f.appendChild(b)}
 howDock(document.getElementById("howL"),document.getElementById("rcL"));howDock(document.getElementById("howH"),document.getElementById("rcH"));
+fmDock(document.querySelector('.fmb[data-fm="lv"]'),document.getElementById("rcL"));fmDock(document.querySelector('.fmb[data-fm="hv"]'),document.getElementById("rcH"));
 var AICFG=(function(){
 function untag(h){var d=document.createElement("div");d.innerHTML=String(h==null?"":h).replace(/<br\s*\/?>/gi," ").replace(/<span class="s2">/g," / ");return d.textContent.replace(/\s+/g," ").trim()}
 /* 計算書の欄外(計算方法・根拠)をそのまま使う。件名・会社名・担当者は入れない */
