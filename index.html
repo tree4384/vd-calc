@@ -2185,6 +2185,8 @@ if(window.resInit)resInit();
 <tr><td>P</td><td>有効電力・出力[kW]</td></tr>
 <tr><td>V</td><td>基準電圧[V](入力した電圧)</td></tr>
 <tr><td>cosθ</td><td>力率。kWとkVAの比(P = S × cosθ)</td></tr>
+<tr><td>Q</td><td>無効電力[kvar]</td></tr>
+<tr><td>η</td><td>効率(エータ)。モーターの出力÷入力、1以下</td></tr>
 <tr><td>IH</td><td>電動機以外の負荷(照明・コンセント・電熱など)の電流の合計[A]。HはHeat(電熱)のH</td></tr>
 <tr><td>IM</td><td>電動機(モーター)の電流の合計[A]。MはMotorのM</td></tr>
 <tr><td>IB</td><td>設計負荷電流[A]。電線と遮断器を選ぶ基準にする電流</td></tr>
@@ -2199,6 +2201,25 @@ if(window.resInit)resInit();
 <tr><td>θ</td><td>周囲温度[℃](実際に布設する場所の温度)</td></tr>
 <tr><td>θ0</td><td>基準の周囲温度[℃](許容電流表の前提の温度)</td></tr>
 </table>
+<h3>⓪ 電力の基本式(kW・kVA・電流)</h3>
+<p><b>三相</b>(V: 線間電圧)</p>
+<div class="fx">S[kVA] = √3 × V × I ÷ 1000</div>
+<div class="fx">P[kW] = √3 × V × I × cosθ ÷ 1000</div>
+<div class="fx">I = S × 1000 ÷ (√3 × V)</div>
+<div class="fx">I = P × 1000 ÷ (√3 × V × cosθ)</div>
+<p><b>単相</b></p>
+<div class="fx">S[kVA] = V × I ÷ 1000</div>
+<div class="fx">P[kW] = V × I × cosθ ÷ 1000</div>
+<div class="fx">I = S × 1000 ÷ V</div>
+<p><b>kW・kVA・kvarの関係</b></p>
+<div class="fx">P[kW] = S[kVA] × cosθ</div>
+<div class="fx">S[kVA] = P[kW] ÷ cosθ</div>
+<div class="fx">S = √(P² + Q²)　Q = S × sinθ</div>
+<p><b>モーター</b>(銘板のkWは軸の出力)</p>
+<div class="fx">入力kW = 出力kW ÷ η</div>
+<div class="fx">入力kVA = 出力kW ÷ (η × cosθ)</div>
+<p class="mn">例: 三相200V・10kW・力率0.8 → S = 10÷0.8 = 12.5kVA、I = 12.5×1000÷(1.732×200) ≒ 36.1A。</p>
+<p>kVAは「見かけの電力」(電線や変圧器の大きさを決める)、kWは「実際に仕事をする電力」。力率が悪いほど、同じkWでも電流が増えます。このアプリの電動機の電流(②)は、効率・力率を含んだ目安の4A/kW・2A/kWを使っています。</p>
 <h3>① 負荷電流 I [A]</h3>
 <div class="fx">単相2線式 I = S×1000 ÷ V</div>
 <div class="fx">単相3線式 I = S×1000 ÷ (2×V)<small>V=100V</small></div>
@@ -2256,6 +2277,11 @@ if(window.resInit)resInit();
 <tr><td>θ</td><td>周囲温度[℃]</td></tr>
 <tr><td>θ0</td><td>基準の周囲温度[℃](気中・暗きょ40℃、管路・直埋25℃)</td></tr>
 </table>
+<h3>⓪ 電力の基本式(三相)</h3>
+<div class="fx">S[kVA] = √3 × V × I ÷ 1000</div>
+<div class="fx">P[kW] = S × cosθ</div>
+<div class="fx">S = √(P² + Q²)　Q = S × sinθ</div>
+<p>V: 線間電圧(6600V)、Q: 無効電力[kvar]。</p>
 <h3>① 負荷電流 I [A]</h3>
 <div class="fx">I = S×1000 ÷ (√3 × 6600)</div>
 <div class="fx">I = P×1000 ÷ (√3 × 6600 × cosθ)<small>kWのとき</small></div>
