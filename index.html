@@ -2176,7 +2176,7 @@ if(window.resInit)resInit();
 
 <dialog class="fmd" id="fmd" aria-labelledby="fmdT">
 <div class="fmh"><h2 id="fmdT">計算式</h2><button type="button" class="mini" id="fmdX">閉じる</button></div>
-<div class="fmtabs" role="tablist" aria-label="低圧と高圧"><button type="button" role="tab" id="fmTL" aria-selected="true">低圧幹線</button><button type="button" role="tab" id="fmTH" aria-selected="false">高圧幹線(6.6kV)</button></div>
+<div class="fmtabs" role="tablist" aria-label="低圧と高圧"><button type="button" role="tab" id="fmTL" aria-selected="true">低圧幹線</button><button type="button" role="tab" id="fmTH" aria-selected="false">高圧幹線</button><button type="button" role="tab" id="fmTX" aria-selected="false">試験・規程の式</button></div>
 <div class="fmb2" id="fmLv">
 <h3>記号の意味</h3>
 <table class="gl">
@@ -2301,14 +2301,159 @@ if(window.resInit)resInit();
 <div class="fx">補正係数 = √((90 − θ) ÷ (90 − θ0))</div>
 <p class="mn">周りが暑いと許容電流を減らすための係数(90は導体最高許容温度)。</p>
 </div>
+<div class="fmb2" id="fmEx" hidden>
+<p class="mn">第一種電気工事士・1級電気工事施工管理技士・内線規程・電技解釈でよく出る式と数値です。</p>
+
+<h3>1. 直流の基本</h3>
+<div class="fx">V = I × R<small>オームの法則</small></div>
+<div class="fx">P = V × I = I²R = V²÷R</div>
+<div class="fx">W[kWh] = P[kW] × t[h]<small>電力量</small></div>
+<div class="fx">直列 R = R1 + R2 + …</div>
+<div class="fx">並列 1/R = 1/R1 + 1/R2 + …<small>2つなら R1R2÷(R1+R2)</small></div>
+<div class="fx">R = ρ × L ÷ A</div>
+<div class="fx">R2 = R1 × {1 + α(t2 − t1)}</div>
+<p>V: 電圧[V]、I: 電流[A]、R: 抵抗[Ω]、P: 電力[W]、t: 時間、ρ: 抵抗率(軟銅は約1/58 Ω·mm²/m)、L: 長さ[m]、A: 断面積[mm²]、α: 抵抗温度係数、t1・t2: 温度[℃]。</p>
+<p class="mn">電線は長いほど、細いほど抵抗が大きい。温度が上がると抵抗も上がる。</p>
+
+<h3>2. 交流の基本</h3>
+<div class="fx">XL = 2πfL<small>コイル</small></div>
+<div class="fx">XC = 1 ÷ (2πfC)<small>コンデンサ</small></div>
+<div class="fx">Z = √(R² + (XL − XC)²)</div>
+<div class="fx">I = V ÷ Z　cosθ = R ÷ Z</div>
+<div class="fx">P = V × I × cosθ = I²R<small>単相</small></div>
+<div class="fx">共振周波数 f = 1 ÷ (2π√(LC))</div>
+<p>f: 周波数[Hz]、L: インダクタンス[H]、C: 静電容量[F]、XL・XC: リアクタンス[Ω]、Z: インピーダンス[Ω]。</p>
+<p class="mn">交流ではコイルとコンデンサも「抵抗のようなもの」(リアクタンス)になる。電力を消費するのは抵抗Rだけ。</p>
+
+<h3>3. 三相交流(Y結線・Δ結線)</h3>
+<div class="fx">Y: 線間電圧 = √3 × 相電圧、線電流 = 相電流</div>
+<div class="fx">Δ: 線間電圧 = 相電圧、線電流 = √3 × 相電流</div>
+<div class="fx">P = √3 × VL × IL × cosθ = 3 × Vp × Ip × cosθ</div>
+<div class="fx">Δ→Y変換 ZY = ZΔ ÷ 3</div>
+<div class="fx">同じ負荷をΔ→Yにすると 電力は1/3</div>
+<p>VL・IL: 線間電圧・線電流、Vp・Ip: 相電圧・相電流。</p>
+
+<h3>4. 配電線の電力損失</h3>
+<div class="fx">単相2線式 Pℓ = 2 × I² × r</div>
+<div class="fx">三相3線式 Pℓ = 3 × I² × r</div>
+<div class="fx">単相3線式(平衡) Pℓ = 2 × I² × r</div>
+<p>r: 電線1本の抵抗[Ω]。単相3線式は平衡していれば中性線に電流が流れないので外線2本分。</p>
+<p class="mn">損失は電流の2乗に比例。電圧を2倍にすると、同じ電力なら電流1/2、損失1/4。</p>
+
+<h3>5. 電圧降下(理論式)</h3>
+<div class="fx">単相2線式 e = 2I(R cosθ + X sinθ)</div>
+<div class="fx">三相3線式 e = √3 I(R cosθ + X sinθ)</div>
+<div class="fx">単相3線式(平衡) e = I(R cosθ + X sinθ)<small>外線と中性線の間</small></div>
+<div class="fx">力率1・Xなし: 単相2線 e = 2Ir、三相 e = √3 Ir</div>
+<p>R・X: 電線1本の抵抗・リアクタンス[Ω]。低圧幹線タブの簡易式(K×L×I÷(1000A))は、これに軟銅の抵抗率を入れて簡単にしたもの。</p>
+
+<h3>6. 力率改善</h3>
+<div class="fx">Qc = P × (tanθ1 − tanθ2)</div>
+<div class="fx">tanθ = sinθ ÷ cosθ = √(1 − cos²θ) ÷ cosθ</div>
+<div class="fx">単相 Qc = 2πfCV²</div>
+<div class="fx">三相Δ結線 Qc = 3 × 2πfCV²<small>V: 線間電圧</small></div>
+<p>Qc: 必要なコンデンサ容量[var]、P: 有効電力[W]、θ1: 改善前、θ2: 改善後。</p>
+<p class="mn">コンデンサで無効電力を打ち消すと、同じkWでも電流が減り、電圧降下と損失が小さくなる。例: 100kWを力率0.8→1.0にするなら Qc = 100×0.75 = 75kvar。</p>
+
+<h3>7. 変圧器</h3>
+<div class="fx">巻数比 a = N1/N2 = V1/V2 = I2/I1</div>
+<div class="fx">効率 η = 出力 ÷ (出力 + 鉄損 + 銅損) × 100</div>
+<div class="fx">出力 = α × S × cosθ　銅損 = α² × 全負荷銅損</div>
+<div class="fx">最大効率: 鉄損 = 銅損 のとき</div>
+<div class="fx">V結線の出力 = √3 × 変圧器1台の容量</div>
+<div class="fx">V結線 利用率 = √3/2 ≒ 0.866　Δ比 = 1/√3 ≒ 0.577</div>
+<p>N: 巻数、α: 負荷率(全負荷に対する割合)、S: 定格容量。鉄損は負荷に関係なく一定、銅損は負荷の2乗に比例。</p>
+
+<h3>8. 短絡電流・%インピーダンス</h3>
+<div class="fx">定格電流 In = Pn ÷ (√3 × V)</div>
+<div class="fx">短絡電流 Is = In × 100 ÷ %Z</div>
+<div class="fx">短絡容量 Ps = √3 × V × Is = Pn × 100 ÷ %Z</div>
+<p>Pn: 基準容量(変圧器容量など)[VA]、%Z: パーセントインピーダンス。遮断器の定格遮断電流は Is 以上が必要。</p>
+
+<h3>9. 需要率・負荷率・不等率</h3>
+<div class="fx">需要率 = 最大需要電力 ÷ 設備容量 × 100[%]</div>
+<div class="fx">負荷率 = 平均需要電力 ÷ 最大需要電力 × 100[%]</div>
+<div class="fx">不等率 = 各負荷の最大需要電力の和 ÷ 合成最大需要電力(≧1)</div>
+<div class="fx">変圧器容量 ≧ 設備容量 × 需要率 ÷ 不等率</div>
+<p class="mn">需要率: 全部同時には使わない割合。負荷率: どれだけ平均して使っているか。不等率: 各負荷の最大が同時刻に来ない度合い。</p>
+
+<h3>10. 電動機</h3>
+<div class="fx">同期速度 Ns = 120 × f ÷ p[min⁻¹]</div>
+<div class="fx">すべり s = (Ns − N) ÷ Ns</div>
+<div class="fx">回転速度 N = Ns × (1 − s)</div>
+<div class="fx">トルク T = 60 × P ÷ (2π × N)[N·m]</div>
+<div class="fx">Y-Δ始動: 始動電流・始動トルクとも 1/3</div>
+<p>f: 周波数、p: 極数、N: 実際の回転速度、P: 出力[W]。</p>
+
+<h3>11. ポンプ・送風機・電熱</h3>
+<div class="fx">ポンプ P[kW] = 9.8 × Q × H × K ÷ η</div>
+<div class="fx">巻上機 P[kW] = W × v ÷ η<small>W[kN]、v[m/s]</small></div>
+<div class="fx">熱量 Q[kJ] = 3600 × P[kW] × t[h]</div>
+<div class="fx">電熱 P[kW] = m × c × ΔT ÷ (3600 × t × η)</div>
+<p>Q: 揚水量[m³/s]、H: 全揚程[m]、K: 余裕係数、η: 効率、m: 質量[kg]、c: 比熱(水4.186kJ/(kg·K))、ΔT: 温度上昇[K]、t: 時間[h]。</p>
+
+<h3>12. 照明</h3>
+<div class="fx">光束法 N = E × A ÷ (F × U × M)</div>
+<div class="fx">平均照度 E = F × N × U × M ÷ A</div>
+<div class="fx">点光源 E = I ÷ r²<small>距離の逆2乗</small></div>
+<div class="fx">水平面照度 Eh = I × cosθ ÷ r²</div>
+<div class="fx">室指数 K = X × Y ÷ {H × (X + Y)}</div>
+<p>N: 灯数、E: 照度[lx]、A: 床面積[m²]、F: 1灯の光束[lm]、U: 照明率、M: 保守率、I: 光度[cd]、r: 光源までの距離[m]、θ: 入射角、X・Y: 部屋の間口・奥行[m]、H: 光源から作業面までの高さ[m]。</p>
+
+<h3>13. 電力量計</h3>
+<div class="fx">P[kW] = 3600 × n ÷ (K × t)</div>
+<p>n: 円板の回転数、K: 計器定数[rev/kWh]、t: 時間[s]。</p>
+
+<h3>14. 蓄電池の容量</h3>
+<div class="fx">C[Ah] = K × I ÷ L</div>
+<p>K: 容量換算時間、I: 放電電流[A]、L: 保守率(通常0.8)。</p>
+
+<h3>15. 接地工事(電技解釈第17条)</h3>
+<table><tr><th>種類</th><th>接地抵抗値</th><th>主な対象</th></tr>
+<tr><td>A種</td><td>10Ω以下</td><td>高圧機器の外箱</td></tr>
+<tr><td>B種</td><td>150÷Ig[Ω]以下</td><td>変圧器の低圧側</td></tr>
+<tr><td>C種</td><td>10Ω以下(※500Ω)</td><td>300V超の低圧機器</td></tr>
+<tr><td>D種</td><td>100Ω以下(※500Ω)</td><td>300V以下の低圧機器</td></tr></table>
+<p>B種: 高低圧混触時に1秒超2秒以内で遮断するなら300÷Ig、1秒以内なら600÷Ig。Igは高圧側の1線地絡電流[A]。※地絡時に0.5秒以内に自動遮断する場合。</p>
+
+<h3>16. 絶縁抵抗(電技省令第58条)</h3>
+<table><tr><th>使用電圧の区分</th><th>絶縁抵抗</th></tr>
+<tr><td>300V以下・対地電圧150V以下</td><td>0.1MΩ以上</td></tr>
+<tr><td>300V以下・その他(200V三相など)</td><td>0.2MΩ以上</td></tr>
+<tr><td>300V超</td><td>0.4MΩ以上</td></tr></table>
+<p>測定が難しいときは漏えい電流1mA以下(電技解釈第14条)。</p>
+
+<h3>17. 絶縁耐力試験(電技解釈第15条・第16条)</h3>
+<div class="fx">最大使用電圧 = 公称電圧 × 1.15 ÷ 1.1</div>
+<div class="fx">試験電圧 = 最大使用電圧 × 1.5<small>7kV以下</small></div>
+<div class="fx">6.6kV: 6900 × 1.5 = 10,350V(交流)を10分間</div>
+<p>ケーブルは直流なら交流の2倍(20,700V)で試験できる。</p>
+
+<h3>18. 分岐回路の開閉器・遮断器の位置(電技解釈第149条)</h3>
+<table><tr><th>分岐回路の電線の許容電流</th><th>分岐点からの長さ</th></tr>
+<tr><td>下記以外</td><td>3m以下</td></tr>
+<tr><td>幹線の遮断器定格の35%以上</td><td>8m以下</td></tr>
+<tr><td>幹線の遮断器定格の55%以上</td><td>制限なし</td></tr></table>
+
+<h3>19. 電線管(内線規程)</h3>
+<div class="fx">占積率 = 電線の断面積の合計 ÷ 管の内断面積 × 100</div>
+<table><tr><th>条件</th><th>占積率</th></tr>
+<tr><td>同じ太さの電線</td><td>48%以下</td></tr>
+<tr><td>太さが違う電線</td><td>32%以下</td></tr></table>
+<p><b>電流減少係数</b>(同一管内の絶縁電線の本数)</p>
+<table><tr><th>本数</th><th>係数</th></tr>
+<tr><td>3本以下</td><td>0.70</td></tr><tr><td>4本</td><td>0.63</td></tr><tr><td>5〜6本</td><td>0.56</td></tr><tr><td>7〜15本</td><td>0.49</td></tr><tr><td>16〜40本</td><td>0.43</td></tr><tr><td>41〜60本</td><td>0.39</td></tr><tr><td>61本以上</td><td>0.34</td></tr></table>
+<p>許容電流 = 電線単体の許容電流 × 電流減少係数。</p>
+<p class="note" style="margin-top:14px">数値は試験でよく出る代表値です。実際の設計・施工では最新の規程と仕様書で確認してください。</p>
+</div>
 </dialog>
 <script>
 /* 計算式を見る */
 (function(){var d=document.getElementById("fmd");if(!d)return;
-function tab(h){document.getElementById("fmTL").setAttribute("aria-selected",String(!h));document.getElementById("fmTH").setAttribute("aria-selected",String(h));document.getElementById("fmLv").hidden=h;document.getElementById("fmHv").hidden=!h}
-document.querySelectorAll(".fmb").forEach(function(b){b.addEventListener("click",function(){tab(b.getAttribute("data-fm")==="hv");if(d.showModal)d.showModal();else d.setAttribute("open","")})});
-document.getElementById("fmTL").addEventListener("click",function(){tab(false)});
-document.getElementById("fmTH").addEventListener("click",function(){tab(true)});
+var T=[["fmTL","fmLv"],["fmTH","fmHv"],["fmTX","fmEx"]];
+function tab(k){T.forEach(function(t,i){document.getElementById(t[0]).setAttribute("aria-selected",String(i===k));var pn=document.getElementById(t[1]);pn.hidden=i!==k;if(i===k)pn.scrollTop=0})}
+document.querySelectorAll(".fmb").forEach(function(b){b.addEventListener("click",function(){tab(b.getAttribute("data-fm")==="hv"?1:0);if(d.showModal)d.showModal();else d.setAttribute("open","")})});
+T.forEach(function(t,i){document.getElementById(t[0]).addEventListener("click",function(){tab(i)})});
 function close(){if(d.close)d.close();else d.removeAttribute("open")}
 document.getElementById("fmdX").addEventListener("click",close);
 d.addEventListener("click",function(e){if(e.target===d)close()});
