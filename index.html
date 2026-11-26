@@ -274,6 +274,28 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 @media (prefers-reduced-motion:reduce){.pjcard .f{transition:none}}
 @media (max-width:1100px){.pjcard .f:last-child{grid-column:span 2}}
 @media (max-width:520px){.pjcard .pjgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pjcard .pjn{grid-column:1/-1}.pjcard .f:last-child{grid-column:1/-1}}
+/* 計算式を見るボタンと計算式のシート */
+.btns{flex-wrap:wrap}
+.fmb{flex:1 0 100%;display:flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:.88rem;font-weight:700;padding:7px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--card);color:var(--acc);cursor:pointer}
+.fmb svg{width:16px;height:16px;flex:none}
+.fmd{border:0;padding:0;margin:auto auto 0;width:100%;max-width:640px;max-height:88dvh;border-radius:16px 16px 0 0;background:var(--card);color:var(--ink);font-family:var(--font);display:flex;flex-direction:column;box-shadow:0 -6px 30px rgba(0,0,0,.25)}
+.fmd:not([open]){display:none}
+.fmd::backdrop{background:rgba(10,18,28,.5)}
+@media (min-width:700px){.fmd{margin:auto;border-radius:16px;max-height:84vh}}
+.fmh{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.fmh h2{margin:0;flex:1;font-size:1.05rem}
+.fmtabs{display:flex;gap:6px;padding:10px 16px 0}
+.fmtabs button{flex:1;font:inherit;font-size:.85rem;font-weight:700;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--sub);cursor:pointer}
+.fmtabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.fmb2{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.fmb2 h3{font-size:.95rem;margin:16px 0 6px;color:var(--acc)}
+.fmb2 .fx{font-family:'Times New Roman',var(--font);font-size:1.02rem;background:var(--brb);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:4px 0;overflow-x:auto;white-space:nowrap}
+.fmb2 .fx small{font-family:var(--font);font-size:.78rem;color:var(--sub);margin-left:6px}
+.fmb2 p,.fmb2 li{font-size:.85rem;color:var(--sub);margin:4px 0}
+.fmb2 ul{margin:4px 0;padding-left:1.2em}
+.fmb2 table{border-collapse:collapse;font-size:.85rem;margin:4px 0;width:100%}
+.fmb2 th,.fmb2 td{border:1px solid var(--line);padding:4px 6px;text-align:center}
+.fmb2 th{background:var(--head);font-weight:700}
 /* 下の「計算する」のバー: 上の内容がふわっと隠れるように */
 .btns::before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none}
 .btn{transition:background-color .15s,filter .15s}
@@ -404,6 +426,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <div id="rows"></div>
 
 <div class="btns">
+<button type="button" class="fmb" data-fm="lv" aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h3"/></svg>計算式を見る</button>
 <button type="button" class="btn pri" id="go">計算する</button>
 </div>
 
@@ -463,6 +486,7 @@ details.rcard[open]>summary .aich svg{transform:rotate(180deg)}
 <div class="rnav" id="hrnav"><button type="button" class="nb" id="hrPrev" aria-label="前の幹線"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l-5 5 5 5"/></svg></button><div class="chips" id="hrchips" aria-label="高圧幹線の一覧"></div><span class="rcount" id="hrcount" aria-live="polite"></span><button type="button" class="nb" id="hrNext" aria-label="次の幹線"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l5 5-5 5"/></svg></button><button type="button" class="tadd" id="hadd" title="幹線を追加" aria-label="幹線を追加"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>追加</button></div>
 <div id="hrows"></div>
 <div class="btns">
+<button type="button" class="fmb" data-fm="hv" aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h3"/></svg>計算式を見る</button>
 <button type="button" class="btn pri" id="hgo">計算する</button>
 </div>
 <details class="card">
@@ -2147,4 +2171,72 @@ if(window.resInit)resInit();
 })();
 </script>
 
+<dialog class="fmd" id="fmd" aria-labelledby="fmdT">
+<div class="fmh"><h2 id="fmdT">計算式</h2><button type="button" class="mini" id="fmdX">閉じる</button></div>
+<div class="fmtabs" role="tablist" aria-label="低圧と高圧"><button type="button" role="tab" id="fmTL" aria-selected="true">低圧幹線</button><button type="button" role="tab" id="fmTH" aria-selected="false">高圧幹線(6.6kV)</button></div>
+<div class="fmb2" id="fmLv">
+<h3>① 負荷電流 I [A]</h3>
+<div class="fx">単相2線式 I = S×1000 ÷ V</div>
+<div class="fx">単相3線式 I = S×1000 ÷ (2×V)<small>V=100V</small></div>
+<div class="fx">三相3線式 I = S×1000 ÷ (√3×V)</div>
+<div class="fx">三相4線式 I = S×1000 ÷ (3×V)<small>V=相電圧</small></div>
+<p>S: 容量[kVA]。kWのときは S = P ÷ cosθ(力率、空欄なら0.85)。kVAのときは力率を使いません。最後に需要率をかけます。</p>
+<h3>② 電動機の電流 IM</h3>
+<div class="fx">IM = P[kW] × 4<small>200V級</small></div>
+<div class="fx">IM = P[kW] × 2<small>400V級</small></div>
+<h3>③ 設計負荷電流 IB(電技解釈第148条)</h3>
+<p>IM ＞ IH(電動機以外の負荷)のとき</p>
+<div class="fx">IM ≦ 50A: IB = 1.25×IM + IH</div>
+<div class="fx">IM ＞ 50A: IB = 1.1×IM + IH</div>
+<p>それ以外は IB = IM + IH。</p>
+<h3>④ 電圧降下 e [V](内線規程の簡易式)</h3>
+<div class="fx">e = K × L × I ÷ (1000 × A)</div>
+<div class="fx">e[%] = e ÷ V × 100</div>
+<table><tr><th>電気方式</th><th>K</th></tr><tr><td>単相2線式</td><td>35.6</td></tr><tr><td>三相3線式</td><td>30.8</td></tr><tr><td>単相3線式・三相4線式</td><td>17.8</td></tr></table>
+<p>L: こう長[m]、I: 負荷電流の単純和[A]、A: 断面積[mm²](並列は×条数)。アルミはKを1.64倍。</p>
+<h3>⑤ 必要な断面積</h3>
+<div class="fx">A ≧ K × L × I ÷ (1000 × e許容)</div>
+<h3>⑥ 許容電圧降下(内線規程 1310-1表)</h3>
+<table><tr><th>こう長</th><th>変圧器から</th><th>低圧受電</th></tr><tr><td>60m以下</td><td>3%</td><td>2%</td></tr><tr><td>120m以下</td><td>5%</td><td>4%</td></tr><tr><td>200m以下</td><td>6%</td><td>5%</td></tr><tr><td>200m超</td><td>7%</td><td>6%</td></tr></table>
+<p>60m超は幹線と分岐の合計の値です。</p>
+<h3>⑦ 遮断器・許容電流の判定</h3>
+<div class="fx">電動機なし: IB ≦ In ≦ Iw</div>
+<div class="fx">電動機あり: In ≦ 3×IM + IH かつ In ≦ 2.5×Iw</div>
+<p>In: 遮断器の定格、Iw: 許容電流。</p>
+<h3>⑧ 周囲温度の補正</h3>
+<div class="fx">補正係数 = √((θm − θ) ÷ (θm − θ0))</div>
+<p>θm: 導体最高許容温度、θ: 周囲温度、θ0: 基準の周囲温度。</p>
+</div>
+<div class="fmb2" id="fmHv" hidden>
+<h3>① 負荷電流 I [A]</h3>
+<div class="fx">I = S×1000 ÷ (√3 × 6600)</div>
+<div class="fx">I = P×1000 ÷ (√3 × 6600 × cosθ)<small>kWのとき</small></div>
+<p>需要率をかけた値。力率は空欄なら0.85。</p>
+<h3>② 電圧降下 e [V](インピーダンス法)</h3>
+<div class="fx">e = √3 × I × L × (R cosθ + X sinθ)</div>
+<div class="fx">e[%] = e ÷ 6600 × 100</div>
+<p>L: こう長[km]、R・X: 導体90℃の交流導体実効抵抗・リアクタンス[Ω/km](並列は÷条数)、sinθ = √(1 − cos²θ)。</p>
+<h3>③ 短絡時の熱的強度</h3>
+<div class="fx">A ≧ Is × √t ÷ K<small>K=134</small></div>
+<p>Is: 短絡電流[A]、t: 遮断時間[s]。Kは架橋ポリエチレン・銅導体(90℃→230℃)。</p>
+<h3>④ 末端の短絡電流(参考値)</h3>
+<div class="fx">Zs = 6600 ÷ (√3 × Is)</div>
+<div class="fx">Is末端 = 6600 ÷ (√3 × √(Rc² + (Zs + Xc)²))</div>
+<p>Rc・Xc: ケーブルの抵抗・リアクタンス × こう長。</p>
+<h3>⑤ 周囲温度の補正</h3>
+<div class="fx">補正係数 = √((90 − θ) ÷ (90 − θ0))</div>
+</div>
+</dialog>
+<script>
+/* 計算式を見る */
+(function(){var d=document.getElementById("fmd");if(!d)return;
+function tab(h){document.getElementById("fmTL").setAttribute("aria-selected",String(!h));document.getElementById("fmTH").setAttribute("aria-selected",String(h));document.getElementById("fmLv").hidden=h;document.getElementById("fmHv").hidden=!h}
+document.querySelectorAll(".fmb").forEach(function(b){b.addEventListener("click",function(){tab(b.getAttribute("data-fm")==="hv");if(d.showModal)d.showModal();else d.setAttribute("open","")})});
+document.getElementById("fmTL").addEventListener("click",function(){tab(false)});
+document.getElementById("fmTH").addEventListener("click",function(){tab(true)});
+function close(){if(d.close)d.close();else d.removeAttribute("open")}
+document.getElementById("fmdX").addEventListener("click",close);
+d.addEventListener("click",function(e){if(e.target===d)close()});
+})();
+</script>
 </body></html>
