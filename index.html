@@ -696,7 +696,9 @@ function wireName(r,s){var p=+r.par||1,m=String(r.ct).match(/^(.*?)(-\dC)?$/),ba
 function f1(x){return (x!=null&&isFinite(x))?x.toFixed(1):"-"}
 function f2(x){return (x!=null&&isFinite(x))?x.toFixed(2):"-"}
 function badge(ok){return ok?'<span class="badge ok">OK</span>':'<span class="badge ng">NG</span>'}
-function sysLabel(r){var v=+r.v;if(r.m==="1p3")return SYS[r.m]+" "+(2*v)+"/"+v+"V";if(r.m==="3p4"){var L=Math.round(v*Math.sqrt(3)/5)*5;return SYS[r.m]+" "+L+"/"+v+"V"}return SYS[r.m]+" "+v+"V"}
+/* 電気方式と電圧を分けて返す(計算書では上段に方式、下段に電圧) */
+function sysParts(r){var v=+r.v;if(r.m==="1p3")return [SYS[r.m],(2*v)+"/"+v+"V"];if(r.m==="3p4"){var L=Math.round(v*Math.sqrt(3)/5)*5;return [SYS[r.m],L+"/"+v+"V"]}return [SYS[r.m],v+"V"]}
+function sysLabel(r){return sysParts(r).join(" ")}
 function memoOf(o){var m=[];if(o.err)m.push(o.err);m=m.concat(o.warn||[],o.notes||[]);if(o.r.memo)m.push(o.r.memo);return m.join(" / ")}
 
 var HT=["設計電流(A)","ブレーカー(A)","電線","許容電流(A)","降下(V)","降下(%)","許容(%)","判定"];
@@ -763,7 +765,7 @@ var bad=o.err&&!o.In;
 t.push(['',i+1]);
 t.push(['l',esc(r.name||"")]);
 t.push(['l',esc(r.load||"")]);
-t.push(['',esc(sysLabel(r))]);
+var sp2=sysParts(r);t.push(['',esc(sp2[0])+'<span class="s2">'+esc(sp2[1])+'</span>']);
 t.push(['n',isNum(r.l)?esc(r.l):"-"]);
 t.push(['n',loadCell(o)]);
 t.push(['n',bad?"-":f1(o.Is)+(o.hasM?'<span class="s2">IM '+f1(o.Im)+'</span>':'')]);
