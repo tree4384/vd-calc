@@ -296,6 +296,9 @@ h1{display:flex;align-items:center;gap:10px;font-size:1.45rem;letter-spacing:.03
 .fmb2 table{border-collapse:collapse;font-size:.85rem;margin:4px 0;width:100%}
 .fmb2 th,.fmb2 td{border:1px solid var(--line);padding:4px 6px;text-align:center}
 .fmb2 th{background:var(--head);font-weight:700}
+.fmb2 .gl td{text-align:left;color:var(--ink)}
+.fmb2 .gl td:first-child{font-family:'Times New Roman',var(--font);font-size:.98rem;white-space:nowrap;text-align:center;width:5.2em}
+.fmb2 .mn{color:var(--ink);background:var(--zb);border-left:3px solid var(--acc);padding:6px 10px;border-radius:0 6px 6px 0}
 /* 下の「計算する」のバー: 上の内容がふわっと隠れるように */
 .btns::before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none}
 .btn{transition:background-color .15s,filter .15s}
@@ -2175,56 +2178,102 @@ if(window.resInit)resInit();
 <div class="fmh"><h2 id="fmdT">計算式</h2><button type="button" class="mini" id="fmdX">閉じる</button></div>
 <div class="fmtabs" role="tablist" aria-label="低圧と高圧"><button type="button" role="tab" id="fmTL" aria-selected="true">低圧幹線</button><button type="button" role="tab" id="fmTH" aria-selected="false">高圧幹線(6.6kV)</button></div>
 <div class="fmb2" id="fmLv">
+<h3>記号の意味</h3>
+<table class="gl">
+<tr><td>I</td><td>負荷電流[A]。幹線に流れる電流</td></tr>
+<tr><td>S</td><td>皮相電力・容量[kVA]</td></tr>
+<tr><td>P</td><td>有効電力・出力[kW]</td></tr>
+<tr><td>V</td><td>基準電圧[V](入力した電圧)</td></tr>
+<tr><td>cosθ</td><td>力率。kWとkVAの比(P = S × cosθ)</td></tr>
+<tr><td>IH</td><td>電動機以外の負荷(照明・コンセント・電熱など)の電流の合計[A]。HはHeat(電熱)のH</td></tr>
+<tr><td>IM</td><td>電動機(モーター)の電流の合計[A]。MはMotorのM</td></tr>
+<tr><td>IB</td><td>設計負荷電流[A]。電線と遮断器を選ぶ基準にする電流</td></tr>
+<tr><td>e</td><td>電圧降下[V]。電線の抵抗で電圧が下がる量</td></tr>
+<tr><td>K</td><td>電気方式で決まる係数(35.6・30.8・17.8)</td></tr>
+<tr><td>L</td><td>こう長[m]。幹線の長さ(片道)</td></tr>
+<tr><td>A</td><td>電線の断面積[mm²](太さ)</td></tr>
+<tr><td>e許容</td><td>許容電圧降下[V]。ここまでなら下がってOKという上限</td></tr>
+<tr><td>In</td><td>遮断器(ブレーカー)の定格電流[A]</td></tr>
+<tr><td>Iw</td><td>電線の許容電流[A]。その電線に流し続けてよい電流の上限</td></tr>
+<tr><td>θm</td><td>導体最高許容温度[℃](CVなら90℃など)</td></tr>
+<tr><td>θ</td><td>周囲温度[℃](実際に布設する場所の温度)</td></tr>
+<tr><td>θ0</td><td>基準の周囲温度[℃](許容電流表の前提の温度)</td></tr>
+</table>
 <h3>① 負荷電流 I [A]</h3>
 <div class="fx">単相2線式 I = S×1000 ÷ V</div>
 <div class="fx">単相3線式 I = S×1000 ÷ (2×V)<small>V=100V</small></div>
 <div class="fx">三相3線式 I = S×1000 ÷ (√3×V)</div>
 <div class="fx">三相4線式 I = S×1000 ÷ (3×V)<small>V=相電圧</small></div>
-<p>S: 容量[kVA]。kWのときは S = P ÷ cosθ(力率、空欄なら0.85)。kVAのときは力率を使いません。最後に需要率をかけます。</p>
+<p class="mn">容量を電圧で割って電流にする式。三相は電流が3本に分かれるので√3で割ります。</p><p>kWのときは S = P ÷ cosθ(力率、空欄なら0.85)でkVAに直してから計算。kVAのときは力率を使いません。最後に需要率(全部が同時に使われない分の割引、1以下)をかけます。</p>
 <h3>② 電動機の電流 IM</h3>
 <div class="fx">IM = P[kW] × 4<small>200V級</small></div>
 <div class="fx">IM = P[kW] × 2<small>400V級</small></div>
+<p class="mn">モーターの出力1kWあたり、200V級なら約4A、400V級なら約2A流れるとして電流を出す目安の式。</p><p>線間電圧300V以下を200V級として扱います。</p>
 <h3>③ 設計負荷電流 IB(電技解釈第148条)</h3>
 <p>IM ＞ IH(電動機以外の負荷)のとき</p>
 <div class="fx">IM ≦ 50A: IB = 1.25×IM + IH</div>
 <div class="fx">IM ＞ 50A: IB = 1.1×IM + IH</div>
-<p>それ以外は IB = IM + IH。</p>
+<p>それ以外は IB = IM + IH(そのまま足すだけ)。</p>
+<p class="mn">モーターは始動時や過負荷で電流が増えやすいので、モーターの電流が多い幹線は、モーター分を1.25倍(50A超は1.1倍)に割り増して電線を選ぶ、という意味。</p>
 <h3>④ 電圧降下 e [V](内線規程の簡易式)</h3>
 <div class="fx">e = K × L × I ÷ (1000 × A)</div>
 <div class="fx">e[%] = e ÷ V × 100</div>
 <table><tr><th>電気方式</th><th>K</th></tr><tr><td>単相2線式</td><td>35.6</td></tr><tr><td>三相3線式</td><td>30.8</td></tr><tr><td>単相3線式・三相4線式</td><td>17.8</td></tr></table>
-<p>L: こう長[m]、I: 負荷電流の単純和[A]、A: 断面積[mm²](並列は×条数)。アルミはKを1.64倍。</p>
+<p class="mn">電線が長いほど、電流が大きいほど電圧は下がり、電線が太いほど下がりにくい、という式。</p><p>Iは負荷電流の単純和(IH + IM、割り増し前)。並列のときはAを断面積×条数にします。アルミは銅より抵抗が大きいのでKを1.64倍。e[%]は電圧降下が基準電圧の何%かを表します。</p>
 <h3>⑤ 必要な断面積</h3>
 <div class="fx">A ≧ K × L × I ÷ (1000 × e許容)</div>
+<p class="mn">④の式をAについて解いたもの。電圧降下を許容値に収めるには、この太さ以上が必要。e許容 = V × 許容%÷100。</p>
 <h3>⑥ 許容電圧降下(内線規程 1310-1表)</h3>
 <table><tr><th>こう長</th><th>変圧器から</th><th>低圧受電</th></tr><tr><td>60m以下</td><td>3%</td><td>2%</td></tr><tr><td>120m以下</td><td>5%</td><td>4%</td></tr><tr><td>200m以下</td><td>6%</td><td>5%</td></tr><tr><td>200m超</td><td>7%</td><td>6%</td></tr></table>
-<p>60m超は幹線と分岐の合計の値です。</p>
+<p class="mn">こう長に応じて、電圧降下が何%まで許されるかの表。</p><p>「変圧器から」は構内に変圧器がある(高圧受電)場合、「低圧受電」は電力会社から低圧で受ける場合。60m超は幹線と分岐の合計の値です。</p>
 <h3>⑦ 遮断器・許容電流の判定</h3>
 <div class="fx">電動機なし: IB ≦ In ≦ Iw</div>
 <div class="fx">電動機あり: In ≦ 3×IM + IH かつ In ≦ 2.5×Iw</div>
-<p>In: 遮断器の定格、Iw: 許容電流。</p>
+<p class="mn">ブレーカーは「設計電流以上」で、かつ「電線が焼けないうちに切れる大きさ」であること。電動機ありはモーターの始動で落ちないよう大きめが許される代わりに、3×IM+IH と 許容電流の2.5倍 の両方を超えてはダメ(電技解釈第148条)。</p>
 <h3>⑧ 周囲温度の補正</h3>
 <div class="fx">補正係数 = √((θm − θ) ÷ (θm − θ0))</div>
-<p>θm: 導体最高許容温度、θ: 周囲温度、θ0: 基準の周囲温度。</p>
+<p class="mn">周りが暑いと電線の熱が逃げにくいので、許容電流を減らす(涼しいと増える)ための係数。許容電流表の値にかけて使います。</p>
 </div>
 <div class="fmb2" id="fmHv" hidden>
+<h3>記号の意味</h3>
+<table class="gl">
+<tr><td>I</td><td>負荷電流[A]</td></tr>
+<tr><td>S</td><td>皮相電力・容量[kVA]</td></tr>
+<tr><td>P</td><td>有効電力[kW]</td></tr>
+<tr><td>6600</td><td>公称電圧6,600V(線間)</td></tr>
+<tr><td>cosθ</td><td>力率(有効分の割合)</td></tr>
+<tr><td>sinθ</td><td>無効分の割合。√(1 − cos²θ)</td></tr>
+<tr><td>e</td><td>電圧降下[V]</td></tr>
+<tr><td>L</td><td>こう長[km](高圧はkmなので注意)</td></tr>
+<tr><td>R</td><td>ケーブルの抵抗[Ω/km]</td></tr>
+<tr><td>X</td><td>ケーブルのリアクタンス[Ω/km](交流で生じる見かけの抵抗)</td></tr>
+<tr><td>A</td><td>ケーブルの断面積[mm²]</td></tr>
+<tr><td>Is</td><td>受電点の短絡電流[A](kAの値×1000)</td></tr>
+<tr><td>t</td><td>短絡の遮断時間[s](継電器が動いて遮断器が切れるまで)</td></tr>
+<tr><td>K</td><td>絶縁体と導体で決まる定数(CV・銅で134)</td></tr>
+<tr><td>Zs</td><td>電源側(電力会社側)のインピーダンス[Ω]</td></tr>
+<tr><td>Rc・Xc</td><td>このケーブル1本分の抵抗・リアクタンス[Ω](R・X × L)</td></tr>
+<tr><td>θ</td><td>周囲温度[℃]</td></tr>
+<tr><td>θ0</td><td>基準の周囲温度[℃](気中・暗きょ40℃、管路・直埋25℃)</td></tr>
+</table>
 <h3>① 負荷電流 I [A]</h3>
 <div class="fx">I = S×1000 ÷ (√3 × 6600)</div>
 <div class="fx">I = P×1000 ÷ (√3 × 6600 × cosθ)<small>kWのとき</small></div>
-<p>需要率をかけた値。力率は空欄なら0.85。</p>
+<p class="mn">容量を電圧で割って電流にする式(三相なので√3で割る)。</p><p>需要率をかけた値。力率は空欄なら0.85。</p>
 <h3>② 電圧降下 e [V](インピーダンス法)</h3>
 <div class="fx">e = √3 × I × L × (R cosθ + X sinθ)</div>
 <div class="fx">e[%] = e ÷ 6600 × 100</div>
-<p>L: こう長[km]、R・X: 導体90℃の交流導体実効抵抗・リアクタンス[Ω/km](並列は÷条数)、sinθ = √(1 − cos²θ)。</p>
+<p class="mn">高圧はケーブルのリアクタンスXの影響が大きいので、抵抗Rだけでなく力率も入れて計算する、より正確な式。</p><p>R・Xは導体90℃の値。並列のときは条数で割ります。高圧の電圧降下に法令の上限はないので、目標値(初期値2%)で判定します。</p>
 <h3>③ 短絡時の熱的強度</h3>
 <div class="fx">A ≧ Is × √t ÷ K<small>K=134</small></div>
-<p>Is: 短絡電流[A]、t: 遮断時間[s]。Kは架橋ポリエチレン・銅導体(90℃→230℃)。</p>
+<p class="mn">短絡した瞬間の大電流で、遮断器が切れるまでの間にケーブルが熱で傷まない太さを求める式。</p><p>Kは架橋ポリエチレン・銅導体で、短絡前90℃→短絡時230℃まで許す前提の値。</p>
 <h3>④ 末端の短絡電流(参考値)</h3>
 <div class="fx">Zs = 6600 ÷ (√3 × Is)</div>
 <div class="fx">Is末端 = 6600 ÷ (√3 × √(Rc² + (Zs + Xc)²))</div>
-<p>Rc・Xc: ケーブルの抵抗・リアクタンス × こう長。</p>
+<p class="mn">受電点の短絡電流から電源側のインピーダンスを逆算し、ケーブルの分を足して、幹線の末端で短絡したときの電流を出す式。ケーブルが長いほど小さくなります。</p>
 <h3>⑤ 周囲温度の補正</h3>
 <div class="fx">補正係数 = √((90 − θ) ÷ (90 − θ0))</div>
+<p class="mn">周りが暑いと許容電流を減らすための係数(90は導体最高許容温度)。</p>
 </div>
 </dialog>
 <script>
