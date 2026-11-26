@@ -888,8 +888,8 @@ function rowHTML(r,pos){return '<article class="rc'+(r.cl?' cl':'')+'" data-id="
 '<div class="g2" style="grid-template-columns:1fr">'+fin('負荷名称','load',r.load,'','', 'text')+'</div>'+
 '<div class="g2">'+fsel('配電方式','m',M_OPTS,r.m)+fin('基準電圧(V)','v',r.v)+'</div>'+
 '<div class="sec"><h3>負荷</h3>'+
-'<div class="g3 keep gw">'+fsel('一般負荷','u',U_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="例: 30" value="'+esc(r.x)+'"></div>'+fin('需要率','dm',r.dm,'','0.05')+'</div>'+
-'<div class="g3 keep pfrow"><div></div>'+fin('力率(cosφ)','pf',r.pf,'','0.05')+'</div>'+
+'<div class="gw"><div class="g2 keep">'+fsel('一般負荷','u',U_OPTS,r.u)+'<div class="f"><label class="xl">容量(kVA)</label><input data-f="x" type="number" inputmode="decimal" placeholder="例: 30" value="'+esc(r.x)+'"></div></div>'+
+'<div class="g2 keep"><div class="pfrow">'+fin('力率(cosφ)','pf',r.pf,'','0.05')+'</div>'+fin('需要率','dm',r.dm,'','0.05')+'</div></div>'+
 '<label class="chk lcchk"><input type="checkbox" data-f="lc"'+(r.lc?' checked':'')+'> 負荷を計算する(kVA × 戸数、需要率は戸数から自動)</label>'+
 '<div class="lcw">'+lcHTML(r)+'</div>'+
 '<div class="mrow">'+motorsHTML(r)+'</div>'+
